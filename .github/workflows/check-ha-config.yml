@@ -27,6 +27,8 @@ jobs:
         sudo apt-get install -y libudev-dev
         python -m pip install --upgrade pip
         python -m pip install homeassistant
+    - name: Rename redacted secret yaml
+      run: mv secrets_redacted.yaml secrets.yaml
     - name: Check home assistant config
       run: |
         hass -c . --script check_config
