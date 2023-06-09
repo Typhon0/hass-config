@@ -7,22 +7,31 @@
     - input_select.status_machine_a_laver
   condition: []
   action:
-  - service: notify.mobile_app_iphone_de_loic
-    data:
-      message: Machine à laver terminé
-      title: Machine à laver terminé
-  - service: tts.google_translate_say
-    data:
-      entity_id: media_player.cuisine
-      message: Machine à laver terminer
   - service: input_boolean.turn_off
     data: {}
     target:
       entity_id: input_boolean.machine_a_laver_videe
+  - service: notify.alexa_media
+    data:
+      target: media_player.echo_dot_bureau, media_player.echo_dot_salon
+      message: La machine à laver est terminé
+  - service: tts.google_translate_say
+    data:
+      cache: false
+      entity_id: media_player.cuisine
+      message: La machine à laver est terminée
+      language: fr
+  - service: notify.mobile_app_iphone_de_loic
+    data:
+      message: La machine à laver est terminée
+      title: La machine à laver est terminé
   - service: notify.hass_agent_device
     data:
-      title: Machine terminé
       message: La machine à laver est terminé
+  - service: notify.mobile_app_iphone_de_emma
+    data:
+      message: La machine à laver est terminé
+      title: La machine à laver est terminé
   mode: single
 - id: '1668202826223'
   alias: Notify - Washing Machine Emptied action

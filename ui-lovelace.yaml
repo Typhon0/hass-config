@@ -279,7 +279,7 @@ views:
               - icon_lamp
             double_tap_action: 
             action: more-info
-            
+
           - type: custom:button-card
             entity: climate.chambre
             name: Tado
@@ -342,7 +342,7 @@ views:
                         state_not: Cuisine
                     card:
                       type: custom:button-card
-                      entity: sensor.jellyfin_jellyfin
+                      entity: sensor.jellyfin
                       name: Dernier lu
                       tap_action:
                         action: none

@@ -1,0 +1,81 @@
+action: fire-dom-event
+browser_mod:
+  command: popup
+  title: Tado bureau
+  style:
+    hui-vertical-stack-card:
+      $hui-entities-card$: |
+        #states {
+          padding-top: 0.5em;
+          padding-bottom: 0em;
+        }
+  card:
+    type: vertical-stack
+    cards:
+      - type: custom:thermostat-dark-card
+        entity: climate.bureau
+
+      - type: entities
+        card_mod:
+          class: content
+        entities:
+          - entity: sensor.bureau_temperature
+            name: Température
+          - entity: sensor.bureau_humidity
+            name: Humidité
+
+      - type: custom:apexcharts-card
+        layout: minimal
+        locale: fr
+        graph_span: 8h
+        show:
+          loading: false
+        apex_config:
+          plotOptions:
+            area:
+              fillTo: end
+          grid:
+            padding:
+              top: -15
+          fill:
+            type: gradient
+            gradient:
+              type: vertical
+              opacityFrom: 0.8
+              opacityTo: 0
+              stops:
+                - 0
+                - 99
+                - 100
+          stroke:
+            width: 4
+          tooltip:
+            style:
+              fontSize: 14px
+            x:
+              format: dddd HH:mm
+          chart:
+            height: 140px
+            offsetY: -20px
+          xaxis:
+            crosshairs:
+              show: false
+        series:
+          - entity: sensor.bureau_temperature
+            name: Température
+            color: "#385581"
+            curve: smooth
+            type: area
+            fill_raw: last
+            group_by:
+              func: avg
+              duration: 24h
+          - entity: sensor.bureau_humidity
+            name: Humidité
+            curve: smooth
+            color: "#385581"
+            type: area
+            fill_raw: last
+            group_by:
+              func: avg
+              duration: 24h

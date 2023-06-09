@@ -98,7 +98,7 @@
           {% if not is_state(entity, 'unknown') %}
             {% set temp = state_attr(entity, 'temperature') | round %}
             {% set precip = state_attr(entity, 'forecast')[0]['precipitation'] | round %}
-              Ressenti {{ temp }}° avec {{ 'pas de risques de pluie' if precip == 0
+              Ressenti {{ temp }}° {{ 'sans de risques de pluie' if precip == 0
               else precip | string + 'mm \u2614\uFE0F' }}
           {% else %}
             Impossible de charger la météo...

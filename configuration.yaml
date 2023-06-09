@@ -66,6 +66,8 @@ sensor:
 lovelace:
   mode: yaml #use ui-lovelace.yaml
   resources: #hacs
+    - url: /hacsfiles/lovelace-thermostat-card/main.js
+      type: module
     - url: /hacsfiles/button-card/button-card.js
       type: module
     - url: /hacsfiles/my-cards/my-cards.js
@@ -87,8 +89,6 @@ lovelace:
     - url: /hacsfiles/apexcharts-card/apexcharts-card.js
       type: module
     - url: /hacsfiles/lovelace-mushroom/mushroom.js
-      type: module
-    - url: /hacsfiles/lovelace-thermostat-dark-card/thermostat-dark-card.js
       type: module
     - url: /hacsfiles/kiosk-mode/kiosk-mode.js
       type: module

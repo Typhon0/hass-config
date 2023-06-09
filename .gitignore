@@ -1,26 +1,30 @@
 # An * ensures that everything will be ignored.
 *
-!/.github
+!.github
 !.HA_VERSION
+
 backups
 blueprints
 deps
 @eaDir
 
-secrets_template.yaml
-secrets.yaml
 
-custom_components/
-www/community/
-www/fonts/
+
 
 *.code-workspace
 home-assistant.log*
+
 
 # You can whitelist files/folders with !, these will not be ignored.
 !*.yaml
 !.gitignore
 !*.md
+
+!www
+!popup
+!themes
+!packages
+!button_card_templates
 
 # Ignore folders.
 .storage
