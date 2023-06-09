@@ -1,0 +1,120 @@
+- id: '1668202384144'
+  alias: Notify Machine terminé
+  description: ''
+  trigger:
+  - platform: state
+    entity_id:
+    - input_select.status_machine_a_laver
+  condition: []
+  action:
+  - service: notify.mobile_app_iphone_de_loic
+    data:
+      message: Machine à laver terminé
+      title: Machine à laver terminé
+  - service: tts.google_translate_say
+    data:
+      entity_id: media_player.cuisine
+      message: Machine à laver terminer
+  - service: input_boolean.turn_off
+    data: {}
+    target:
+      entity_id: input_boolean.machine_a_laver_videe
+  - service: notify.hass_agent_device
+    data:
+      title: Machine terminé
+      message: La machine à laver est terminé
+  mode: single
+- id: '1668202826223'
+  alias: Notify - Washing Machine Emptied action
+  description: ''
+  trigger:
+  - platform: event
+    event_type: mobile_app_notification_action
+    event_data:
+      action: MACHINE_EMPTIED
+  condition: []
+  action:
+  - service: notify.mobile_app_iphone_loic
+    data:
+      message: clear_notification
+      data:
+        tag: washing
+  - service: input_boolean.turn_off
+    data: {}
+    target:
+      entity_id: input_boolean.machine_a_laver_videe
+  mode: single
+- id: '1669882300981'
+  alias: Set - Washing Machine States
+  description: ''
+  trigger:
+  - platform: numeric_state
+    entity_id: sensor.prise_tuya_power
+    id: machine-off
+    for:
+      hours: 0
+      minutes: 1
+      seconds: 30
+    attribute: power
+    below: 0.1
+  - platform: numeric_state
+    entity_id: sensor.prise_tuya_power
+    id: machine-waiting
+    for:
+      hours: 0
+      minutes: 2
+      seconds: 0
+    attribute: power
+    above: 1
+    below: 7
+  - platform: numeric_state
+    entity_id: sensor.prise_tuya_power
+    id: machine-running
+    attribute: power
+    above: 2
+  condition: []
+  action:
+  - choose:
+    - conditions:
+      - condition: trigger
+        id: machine-off
+      sequence:
+      - service: input_select.select_option
+        data:
+          option: Éteins
+        target:
+          entity_id: input_select.status_machine_a_laver
+    - conditions:
+      - condition: trigger
+        id: machine-waiting
+      - condition: state
+        entity_id: input_select.status_machine_a_laver
+        state: En cours
+      sequence:
+      - service: input_select.select_option
+        data:
+          option: Terminé
+        target:
+          entity_id: input_select.status_machine_a_laver
+    - conditions:
+      - condition: trigger
+        id: machine-waiting
+      - condition: state
+        entity_id: input_select.status_machine_a_laver
+        state: Éteins
+      sequence:
+      - service: input_select.select_option
+        data:
+          option: En attente
+        target:
+          entity_id: input_select.status_machine_a_laver
+    - conditions:
+      - condition: trigger
+        id: machine-running
+      sequence:
+      - service: input_select.select_option
+        data:
+          option: En cours
+        target:
+          entity_id: input_select.status_machine_a_laver
+  mode: single

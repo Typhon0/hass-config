@@ -1,0 +1,139 @@
+- sensor:
+    - unique_id: sidebar
+      state: template
+      attributes:
+        time: >
+          {% set hours = now().strftime('%H') %}
+          {% set minutes = now().strftime('%M') %}
+          <span class="time">
+            {{ hours }}<span class="time-colon">:</span>{{ minutes }}
+          </span>
+        date: >
+          <font color='#6a7377'><b>
+          {% if strptime(states('sensor.date'), '%Y-%m-%d').day != None %}
+          {% set days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'] %}
+          {% set months = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+          'Juillet', 'Août', 'Séptembre', 'Octobre', 'Novembre', 'Décembre'] %}
+            {{ days[now().weekday()] }}<br>
+            {{ strptime(states('sensor.sensor.date_time_iso'), '%Y-%m-%d').day }} {{ months[now().month-1] }}
+          {% endif %}
+          </b></font>
+        greet: >
+          <b>
+          {% set time = now().hour %}
+          {% if time <= 1 %} Bonne nuit {{'\U0001F611'}}
+          {% elif time <= 3 %} Bonne nuit {{'\U0001F62A'}}
+          {% elif time <= 5 %} Bonne nuit {{'\U0001F634'}}
+          {% elif time <= 7 %} Bonjour {{'\U0001F4A9'}}
+          {% elif time <= 9 %} Bonjour {{'\u2615\uFE0F'}}
+          {% elif time <= 10 %} Bonjour {{'\U0001F642'}}
+          {% elif time <= 13 %} Bonne journée {{'\U0001F60A'}}
+          {% elif time <= 15 %} Bonne journée {{'\U0001F60E'}}
+          {% elif time <= 17 %} Bonne journée {{'\U0001F44B\U0001F3FB'}}
+          {% elif time <= 19 %} Bonne soirée {{'\U0001F44B\U0001F3FB'}}
+          {% elif time <= 22 %} Bonne soirée {{'\U0001F60C'}}
+          {% elif time <= 23 %} Bonne soirée {{'\U0001F974'}}
+          {% else %} Bonne soirée {{'\U0001F974'}}
+          {% endif %}
+          </b>
+        active: >
+          <b>
+          {% set lights = [
+            states.light.ampoule_cuisine,
+            states.light.ampoule_salon,
+            states.light.lampe_bureau,
+            states.light.netatmo_presence,
+            states.light.midbedsidelamp2
+          ] %}
+
+          {% set devices = [
+          
+          ] %}
+
+          {% set lights_on = lights | selectattr('state','eq','on') | list %}
+          {% set lights_name = lights | selectattr('state','eq','on') | map(attribute='name') | join(', ') %}
+
+          {% set devices_on = devices | selectattr('state','search','(on|cool|fan_only|playing)') | list %}
+          {% set devices_name = devices_on | map(attribute='name') | join(', ') %}
+
+          {% if (lights_on | length == 0) and (devices_on | length > 0) %}
+            {{ devices_name | regex_replace(',([^,]*)$',' et\\1') }} allumée
+
+          {% elif (lights_on | length == 1) and (devices_on | length == 1) %}
+            {{ lights_name }} et {{devices_name }} allumée
+
+          {% elif (lights_on | length == 1) and (devices_on | length > 1) %}
+            {{ lights_name }}, {{ devices_name | regex_replace(',([^,]*)$',' et\\1') }} allumée
+
+          {% elif (lights_on | length > 1) and (devices_on | length == 1) %}
+            {{ lights_on | length }} lampor et {{ devices_name }} allumée
+
+          {% elif (lights_on | length > 1) and (devices_on | length > 1) %}
+            {{ lights_on | length }} lampor, {{ devices_name | regex_replace(',([^,]*)$',' et\\1') }} allumée
+
+          {% elif (lights_on | length == 1) and (devices_on | length == 0) %}
+            {{ lights_name }} est allumée
+
+          {% elif (lights_on | length > 1) and (devices_on | length == 0) %}
+            {{ lights_on | length }} les lumières sont allumées
+
+          {% else %}
+            <font color='#6a7377'>Tout est éteint</font>
+          {% endif %}
+          </b>
+        mailbox: >
+          {% set mailbox = states('sensor.mailbox') %}
+          {% if mailbox | int(default=0) > 0 %}
+            {{ '\U0001F4EC' }} <font color='#6a7377'><b>Boites aux lettres ({{ mailbox }})</b></font>
+          {% endif %}
+        vacuum: >
+          {% set entity_id = 'vacuum.morty' %}
+          {% if is_state(entity_id, 'cleaning') %}
+            <b>Morty dammsuger</b>
+          {% elif is_state(entity_id, 'returning') %}
+            <b>Morty är färdig</b>
+          {% endif %}
+        weather: >
+          {% set entity = 'weather.maison' %}
+          {% if not is_state(entity, 'unknown') %}
+            {% set temp = state_attr(entity, 'temperature') | round %}
+            {% set precip = state_attr(entity, 'forecast')[0]['precipitation'] | round %}
+              Ressenti {{ temp }}° avec {{ 'pas de risques de pluie' if precip == 0
+              else precip | string + 'mm \u2614\uFE0F' }}
+          {% else %}
+            Impossible de charger la météo...
+          {% endif %}
+        laundry: >
+          {% set start_time = state_attr('calendar.tvatta', 'start_time') %}
+          {% if start_time != None %}
+            {% set time = as_timestamp(start_time) | timestamp_custom('%H:%M') %}
+            {% set hours = as_timestamp(start_time) | timestamp_custom('%H') | int(default=0) / 24 %}
+            {% set count = (as_timestamp(start_time) - as_timestamp(now())) / 86400 - hours %}
+            {% set day = strptime(start_time, '%Y-%m-%d %H:%M:%S').strftime('%A')
+            | replace('Monday', 'Lundi')
+            | replace('Tuesday', 'Mardi')
+            | replace('Wednesday', 'Mercredi')
+            | replace('Thursday', 'Jeudi')
+            | replace('Friday', 'Vendredi')
+            | replace('Saturday', 'Samedi')
+            | replace('Sunday', 'Dimanche') %}
+            {% if count <= 0.0 %}
+              {{'\U0001F4A6'}} Tvätt idag {{ time }}
+            {% elif count <= 1.0 %}
+              Tvätt imorgon klockan {{ time }}
+            {% elif count <= 2.0 %}
+              Tvätt i övermorgon klockan {{ time }}
+            {% else %}
+              Tvätt om {{ (count + hours) | round }} dagar på {{ day }} kl {{ time }}
+            {% endif %}
+          {% endif %}
+        battery: >
+          {% set entities = states.sensor 
+            | selectattr('entity_id', 'search', 'battery')
+            | rejectattr('entity_id', 'search', 'iphone')
+            | map(attribute = 'entity_id') | list %}
+          {% for sensor in entities if states(sensor) != 'unknown' and states(sensor) !=
+          'unavailable' and states(sensor) != 'None' and states(sensor) | int(default=0) <= 5 %}
+            {% if loop.first %} {{'\u26A0\uFE0F'}} Batterie {% else %}, {% endif %}
+            {{ state_attr(sensor, 'friendly_name') }} {{ states(sensor) }}%
+          {% endfor %}

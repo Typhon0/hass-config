@@ -1,0 +1,115 @@
+http:
+  server_port: 8443
+  use_x_forwarded_for: true
+  trusted_proxies:
+    - !secret trusted_proxy
+  ip_ban_enabled: true
+  login_attempts_threshold: 100
+homeassistant:
+  auth_mfa_modules:
+    - type: totp
+  # packages: !include_dir_named packages
+  unit_system: metric
+  temperature_unit: C
+  time_zone: Europe/Paris
+  currency: EUR
+  external_url: !secret external_url
+  internal_url: !secret internal_url
+  allowlist_external_dirs:
+    - /config
+# Configure a default setup of Home Assistant (frontend, api, etc)
+# Text to speech
+api:
+history:
+alexa:
+  smart_home:
+    locale: fr-FR
+    endpoint: !secret alexa_endpoint
+    client_id: !secret alexa_client_id
+    client_secret: !secret alexa_client_secret
+    filter:
+      exclude_entity_globs:
+        - sensor.browser_*
+notify:
+  name: "hass agent device"
+  platform: hass_agent_notifier
+  resource: !secret hass_agent_service_ressource
+media_player:
+  - platform: hass_agent_mediaplayer
+    name: "hass agent  mediaplayer"
+    host: !secret hass_agent_mediaplayer_host
+    port: 5115
+  - platform: samsungtv_tizen
+    host: !secret samsungtv_host
+    mac: !secret samsungtv_mac
+tts:
+  - platform: google_translate
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+input_select:
+input_boolean:
+homekit:
+frontend:
+  themes: !include_dir_merge_named themes
+  extra_module_url:
+    - /hacsfiles/lovelace-card-mod/card-mod.js
+
+template: !include sidebar.yaml
+
+sensor:
+  - platform: time_date
+    display_options:
+      - time
+      - date
+
+lovelace:
+  mode: yaml #use ui-lovelace.yaml
+  resources: #hacs
+    - url: /hacsfiles/button-card/button-card.js
+      type: module
+    - url: /hacsfiles/my-cards/my-cards.js
+      type: module
+    - url: /hacsfiles/lovelace-card-mod/card-mod.js
+      type: module
+    - url: /hacsfiles/lovelace-layout-card/layout-card.js
+      type: module
+    - url: /hacsfiles/swipe-card/swipe-card.js
+      type: module
+    - url: /hacsfiles/light-entity-card/light-entity-card.js
+      type: module
+    - url: /hacsfiles/light-popup-card/light-popup-card.js
+      type: module
+    - url: /hacsfiles/mini-graph-card/mini-graph-card-bundle.js
+      type: module
+    - url: /hacsfiles/bar-card/bar-card.js
+      type: module
+    - url: /hacsfiles/apexcharts-card/apexcharts-card.js
+      type: module
+    - url: /hacsfiles/lovelace-mushroom/mushroom.js
+      type: module
+    - url: /hacsfiles/lovelace-thermostat-dark-card/thermostat-dark-card.js
+      type: module
+    - url: /hacsfiles/kiosk-mode/kiosk-mode.js
+      type: module
+    - url: /hacsfiles/lovelace-auto-entities/auto-entities.js
+      type: module
+    - url: /local/calendar-card.js?v=3.109.1
+      type: module
+    - url: /local/custom_icons.js?v=28082021
+      type: module
+    - url: /local/marked.min.js
+      type: module
+    - url: /local/vanilla-tilt.min.js
+      type: module
+    - url: /local/font.css
+      type: css
+
+  dashboards:
+    lovelace-salon: # Needs to contain a hyphen (-)
+      mode: yaml
+      filename: salon_dashboard.yaml
+      title: Salon
+      icon: mdi:tools
+      show_in_sidebar: true
+
