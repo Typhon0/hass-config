@@ -8,7 +8,7 @@ circle:
       - --c-stroke-width: 2.3
       - --c-stroke-width-dragging: 4
       - --c-font-color: '#97989c'
-      - --c-font-size: 14px
+      - --c-font-size: 12px
       - --c-unit-font-size: 10.5px
       - --c-font-weight: 700
       - --c-letter-spacing: -0.02rem
@@ -169,7 +169,7 @@ circle:
                         : h < 24 ? parseInt(h) + 'h'
                         : parseInt(d) + 'd';
                 };
-                let input = states[variables.retain] === undefined || states[variables.retain].state === 'unavailable'
+                let input = states[variables.retain] === undefined || states[variables.retain].state === 'Non disponible'
                         ? time(Date.now() - Date.parse(entity.last_changed))
                         : time(Date.now() - Date.parse(states[variables.retain].state)),
                     unit = ' ';

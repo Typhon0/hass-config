@@ -2,17 +2,25 @@ http:
   server_port: 8443
   use_x_forwarded_for: true
   trusted_proxies:
-    - !secret trusted_proxy
+    - !secret nginx_trusted_proxy
+    - !secret authentik_trusted_proxy
   ip_ban_enabled: true
   login_attempts_threshold: 100
+auth_header:
+  allow_bypass_login: false
+
+my:
+energy:
 homeassistant:
   auth_mfa_modules:
     - type: totp
-  # packages: !include_dir_named packages
+  packages: !include_dir_named packages
   unit_system: metric
   temperature_unit: C
   time_zone: Europe/Paris
   currency: EUR
+  country: FR
+  language: FR
   external_url: !secret external_url
   internal_url: !secret internal_url
   allowlist_external_dirs:
@@ -44,35 +52,39 @@ media_player:
     mac: !secret samsungtv_mac
 tts:
   - platform: google_translate
+proxmoxve:
+  - host: 192.168.1.151
+    username: root
+    verify_ssl: false
+    password: DRV4x5tp*
+    nodes:
+      - node: promox
 automation: !include automations.yaml
 script: !include scripts.yaml
 scene: !include scenes.yaml
 input_select:
 input_boolean:
-homekit:
+command_line:
+homekit: !include homekit.yaml
 frontend:
   themes: !include_dir_merge_named themes
   extra_module_url:
     - /hacsfiles/lovelace-card-mod/card-mod.js
 
-template: !include sidebar.yaml
+template: !include template.yaml
 
-sensor:
-  - platform: time_date
-    display_options:
-      - time
-      - date
+sensor: !include sensors.yaml
 
 lovelace:
   mode: yaml #use ui-lovelace.yaml
   resources: #hacs
+    - url: /local/jellyfin-next-up-card.js
+      type: module
     - url: /hacsfiles/lovelace-thermostat-card/main.js
       type: module
     - url: /hacsfiles/button-card/button-card.js
       type: module
     - url: /hacsfiles/my-cards/my-cards.js
-      type: module
-    - url: /hacsfiles/lovelace-card-mod/card-mod.js
       type: module
     - url: /hacsfiles/lovelace-layout-card/layout-card.js
       type: module
@@ -104,6 +116,8 @@ lovelace:
       type: module
     - url: /local/font.css
       type: css
+    - url: /hacsfiles/kiosk-mode/kiosk-mode.js
+      type: module
 
   dashboards:
     lovelace-salon: # Needs to contain a hyphen (-)
@@ -113,3 +127,7 @@ lovelace:
       icon: mdi:tools
       show_in_sidebar: true
 
+logger:
+  default: info
+  logs:
+    custom_components.auth_header: debug

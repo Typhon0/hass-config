@@ -103,7 +103,7 @@ tablet:
   bar-card-color: "#303435"
 
   #button_card_templates
-  button-card-font-size: 1.35vw
+  button-card-font-size: 0.8cqw
   z-axis-adjustment: 0.05vw #tilt compensation
   button-card-font-weight: 500
   button-card-letter-spacing: -0.02vw
@@ -131,7 +131,7 @@ tablet:
   popup-padding-y: 0px
   popup-min-width: 440px
   tablet-popup-header-color: rgba(200, 218, 222, 0.05)
-  tablet-popup-content-padding: 1.4em 2.2em 1.6em 1.5em
+  tablet-popup-content-padding: 1.1em 2.2em 1.6em 1.5em
   tablet-popup-button-padding: 0.1em 2em 1.8em 2em
   tablet-popup-border-style: 1.5px solid rgba(0,0,0,0.2)
   tablet-popup-align-dialog: center
@@ -147,8 +147,9 @@ tablet:
 
   card-mod-root: |
     #view {
-      background: url('/local/background.png');
-      background-size: cover;
+      # background: url('/local/background.png');
+      # background-size: cover;
+      background: #000000FF  /* fallback for old browsers */
     }
 
   card-mod-view-yaml: |
@@ -297,7 +298,7 @@ tablet:
       letter-spacing: 0.005em;
       font-size: 1.6em;
       font-weight: 500;
-      padding: 1em 0 0 1.38em;
+      padding: 0.8em 0 0 1.3em;
       line-height: initial;
       cursor: default;
     }
@@ -348,12 +349,30 @@ tablet:
       }
 
       ha-dialog {
-          --vertical-align-dialog: var(--tablet-popup-align-dialog) !important;
-          --dialog-surface-margin-top: var(--tablet-popup-margin-top) !important;
+        --vertical-align-dialog: var(--tablet-popup-align-dialog) !important;
+        --dialog-surface-margin-top: var(--tablet-popup-margin-top) !important;
       }
 
-    ha-header-bar$: |
-      header {
-        background: var(--tablet-popup-header-color) !important;
+      ha-dialog > div:focus {
+        outline: none;
+      }
+
+      ha-dialog > div.content > div.container {
+        padding: 0 !important;
+      }
+
+      ha-dialog-header {
+        font-family: var(--primary-font-family);
+        background-color: var(--tablet-popup-header-color);
         border-bottom: var(--tablet-popup-border-style);
+      }
+
+    ha-dialog-header$header: |
+      div.header-bar {
+        padding: 10px 17px 8px 17px;
+      }
+
+    ha-dialog$: |
+      div.mdc-dialog__surface {
+        background-color: var(--popup-background-color) !important;
       }

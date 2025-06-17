@@ -9,7 +9,7 @@ base_media:
     media_on: >
       [[[ return !entity || ['playing', 'paused'].indexOf(entity.state) !== -1; ]]]
     media_off: >
-      [[[ return !entity || ['off', 'idle', 'standby', 'unknown', 'unavailable'].indexOf(entity.state) !== -1; ]]]
+      [[[ return !entity || ['off', 'idle', 'standby', 'unknown', 'Non disponible'].indexOf(entity.state) !== -1; ]]]
   tap_action:
     action: >
       [[[

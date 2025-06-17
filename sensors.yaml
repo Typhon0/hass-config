@@ -1,0 +1,62 @@
+- platform: time_date
+  display_options:
+    - time
+    - date
+    - date_time_iso
+
+- platform: rest
+  name: "Jellyfin: Next Up"
+  unique_id: jellyfin_next_up
+  resource: http://192.168.1.21:8096/Shows/NextUp?userId=68d713351b4d482383444c199c230cfc
+  headers:
+    x-emby-authorization: !secret jellyfin_token
+  scan_interval: 10
+  json_attributes:
+    - Items
+  value_template: "OK"
+
+- platform: rest
+  name: "Jellyfin: Resume"
+  unique_id: jellyfin_resume
+  resource: http://192.168.1.21:8096/Users/68d713351b4d482383444c199c230cfc/Items/Resume
+  headers:
+    x-emby-authorization: !secret jellyfin_token
+  scan_interval: 10
+  json_attributes:
+    - Items
+  value_template: "OK"
+
+- platform: rest
+  name: "Jellyfin: Playing ID"
+  unique_id: jellyfin_playing_id
+  resource: http://192.168.1.21:8096/Sessions/?ActiveWithinSeconds=90
+  headers:
+    x-emby-authorization: !secret jellyfin_token
+  scan_interval: 10
+  value_template: "{{ value_json[0].NowPlayingItem.SeriesId }}"
+
+- platform: rest
+  name: "Jellyfin: Playing"
+  unique_id: jellyfin_playing
+  resource: http://192.168.1.21:8096/Sessions/?ActiveWithinSeconds=90
+  json_attributes_path: $[0].NowPlayingItem
+  json_attributes:
+    - Name
+    - SeriesName
+    - SeriesId
+    - SeasonId
+    - ParentBackdropItemId
+    - ParentBackdropImageTags
+  headers:
+    x-emby-authorization: !secret jellyfin_token
+  scan_interval: 10
+  value_template: "OK"
+  # value_template: '{{ value_json[0].NowPlayingItem.SeriesId }}'
+
+- platform: 'gazpar'
+  name: 'gazpar'
+  username: !secret gazpar_username
+  password: !secret gazpar_password
+  pce_identifier: '05685238764120'
+  tmpdir: '/tmp'
+  scan_interval: '08:00:00'

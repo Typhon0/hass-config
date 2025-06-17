@@ -1,0 +1,11 @@
+- filter:
+    include_domains:
+      - alarm_control_panel
+      - camera
+      - light
+      - climate
+    exclude_entity_globs:
+      - light.browser*
+      - light.*_screen
+    include_entity_globs:
+      - sensor.thermo_serre*

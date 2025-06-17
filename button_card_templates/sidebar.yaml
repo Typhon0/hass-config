@@ -46,6 +46,11 @@ sidebar:
         top: -.11em;
       }
     }
+    .commute {
+      line-height: var(--sidebar-time-line-height);
+      font-size: 1vw;
+      letter-spacing: 0.07vw;
+    }
     p {
       font-size: var(--sidebar-font-size);
       line-height: var(--sidebar-line-height);
@@ -66,11 +71,11 @@ sidebar:
         line-height: calc(var(--sidebar-time-line-height) * 1.4 );
       }
       p {
-        font-size: calc(var(--sidebar-font-size) * 1.4 );
-        line-height: calc(var(--sidebar-line-height) * 1.4 );
+        font-size: calc(var(--sidebar-font-size) * 1.2 );
+        line-height: calc(var(--sidebar-line-height) * 1.2 );
       }
     }
-    /* phone */
+    /* phone  */
     @media screen and (max-width: 800px) {
       .time {
         font-size: calc(var(--sidebar-time-font-size) * 2.6 );

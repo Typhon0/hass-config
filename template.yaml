@@ -1,4 +1,9 @@
 - sensor:
+    - name: "jellyfin_playing_episode_backdrop_url"
+      state: >
+        http://192.168.1.21:8096/Items/{{states('sensor.jellyfin_playing_2')}}/Images/Backdrop?maxWidth=512&quality=80
+
+- sensor:
     - unique_id: sidebar
       state: template
       attributes:
@@ -13,9 +18,9 @@
           {% if strptime(states('sensor.date'), '%Y-%m-%d').day != None %}
           {% set days = ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi', 'Dimanche'] %}
           {% set months = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-          'Juillet', 'Août', 'Séptembre', 'Octobre', 'Novembre', 'Décembre'] %}
+          'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'] %}
             {{ days[now().weekday()] }}<br>
-            {{ strptime(states('sensor.sensor.date_time_iso'), '%Y-%m-%d').day }} {{ months[now().month-1] }}
+            {{ strptime(states('sensor.date'), '%Y-%m-%d').day }} {{ months[now().month-1] }}
           {% endif %}
           </b></font>
         greet: >
@@ -47,7 +52,7 @@
           ] %}
 
           {% set devices = [
-          
+
           ] %}
 
           {% set lights_on = lights | selectattr('state','eq','on') | list %}
@@ -81,59 +86,37 @@
             <font color='#6a7377'>Tout est éteint</font>
           {% endif %}
           </b>
-        mailbox: >
-          {% set mailbox = states('sensor.mailbox') %}
-          {% if mailbox | int(default=0) > 0 %}
-            {{ '\U0001F4EC' }} <font color='#6a7377'><b>Boites aux lettres ({{ mailbox }})</b></font>
-          {% endif %}
-        vacuum: >
-          {% set entity_id = 'vacuum.morty' %}
-          {% if is_state(entity_id, 'cleaning') %}
-            <b>Morty dammsuger</b>
-          {% elif is_state(entity_id, 'returning') %}
-            <b>Morty är färdig</b>
-          {% endif %}
         weather: >
           {% set entity = 'weather.maison' %}
+          {% set rain_chance_sensor = 'sensor.nilvange_rain_chance' %}
           {% if not is_state(entity, 'unknown') %}
             {% set temp = state_attr(entity, 'temperature') | round %}
-            {% set precip = state_attr(entity, 'forecast')[0]['precipitation'] | round %}
-              Ressenti {{ temp }}° {{ 'sans de risques de pluie' if precip == 0
-              else precip | string + 'mm \u2614\uFE0F' }}
+            {% if not is_state(rain_chance_sensor, 'unknown') %}
+              {% set rain_chance = states(rain_chance_sensor) | float | round %}
+              Ressenti {{ temp }}° </b></br> {{ 'sans de risques de pluie' if rain_chance == 0 else rain_chance | string + '% \u2614\uFE0F' }}
+            {% else %}
+              Ressenti {{ temp }}° (Information de précipitation non disponible)
+            {% endif %}
           {% else %}
             Impossible de charger la météo...
           {% endif %}
-        laundry: >
-          {% set start_time = state_attr('calendar.tvatta', 'start_time') %}
-          {% if start_time != None %}
-            {% set time = as_timestamp(start_time) | timestamp_custom('%H:%M') %}
-            {% set hours = as_timestamp(start_time) | timestamp_custom('%H') | int(default=0) / 24 %}
-            {% set count = (as_timestamp(start_time) - as_timestamp(now())) / 86400 - hours %}
-            {% set day = strptime(start_time, '%Y-%m-%d %H:%M:%S').strftime('%A')
-            | replace('Monday', 'Lundi')
-            | replace('Tuesday', 'Mardi')
-            | replace('Wednesday', 'Mercredi')
-            | replace('Thursday', 'Jeudi')
-            | replace('Friday', 'Vendredi')
-            | replace('Saturday', 'Samedi')
-            | replace('Sunday', 'Dimanche') %}
-            {% if count <= 0.0 %}
-              {{'\U0001F4A6'}} Tvätt idag {{ time }}
-            {% elif count <= 1.0 %}
-              Tvätt imorgon klockan {{ time }}
-            {% elif count <= 2.0 %}
-              Tvätt i övermorgon klockan {{ time }}
-            {% else %}
-              Tvätt om {{ (count + hours) | round }} dagar på {{ day }} kl {{ time }}
-            {% endif %}
+        commute_loic: >
+          {% set timeForCommute = now().hour %}
+          {% set travelloic = state_attr('sensor.trajet_travail_loic', 'duration_in_traffic') %}
+          {% set travelemma = state_attr('sensor.trajet_travail_emma', 'duration_in_traffic') %}
+          {% set currentDay = now().weekday() %} {# Monday is 0, Sunday is 6 #}
+          {% if (timeForCommute >= 6 and timeForCommute < 12) and (currentDay >= 0 and currentDay < 5) %}
+          <b class="commute">Travail Loic: {{travelloic}}</b></br>
           {% endif %}
-        battery: >
-          {% set entities = states.sensor 
-            | selectattr('entity_id', 'search', 'battery')
-            | rejectattr('entity_id', 'search', 'iphone')
-            | map(attribute = 'entity_id') | list %}
-          {% for sensor in entities if states(sensor) != 'unknown' and states(sensor) !=
-          'unavailable' and states(sensor) != 'None' and states(sensor) | int(default=0) <= 5 %}
-            {% if loop.first %} {{'\u26A0\uFE0F'}} Batterie {% else %}, {% endif %}
-            {{ state_attr(sensor, 'friendly_name') }} {{ states(sensor) }}%
-          {% endfor %}
+          {% if (timeForCommute >= 6 and timeForCommute < 9) and (currentDay in [1, 2, 3, 4]) %}
+          <b class="commute">Travail Emma: {{travelemma}}</b>
+          {% endif %}
+
+- sensor:
+  - name: gas_energy
+    unit_of_measurement: 'kWh'      
+    state: >
+      {{ states('sensor.gazpar') }}
+    icon: mdi:fire
+    device_class: energy
+    state_class: total_increasing

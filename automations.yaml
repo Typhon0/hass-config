@@ -5,12 +5,10 @@
   - platform: state
     entity_id:
     - input_select.status_machine_a_laver
+    from:
+    to: Terminé
   condition: []
   action:
-  - service: input_boolean.turn_off
-    data: {}
-    target:
-      entity_id: input_boolean.machine_a_laver_videe
   - service: notify.alexa_media
     data:
       target: media_player.echo_dot_bureau, media_player.echo_dot_salon
@@ -59,23 +57,13 @@
   trigger:
   - platform: numeric_state
     entity_id: sensor.prise_tuya_power
-    id: machine-off
+    id: machine-finished
     for:
       hours: 0
-      minutes: 1
-      seconds: 30
-    attribute: power
-    below: 0.1
-  - platform: numeric_state
-    entity_id: sensor.prise_tuya_power
-    id: machine-waiting
-    for:
-      hours: 0
-      minutes: 2
+      minutes: 5
       seconds: 0
     attribute: power
-    above: 1
-    below: 7
+    below: 2
   - platform: numeric_state
     entity_id: sensor.prise_tuya_power
     id: machine-running
@@ -86,35 +74,12 @@
   - choose:
     - conditions:
       - condition: trigger
-        id: machine-off
-      sequence:
-      - service: input_select.select_option
-        data:
-          option: Éteins
-        target:
-          entity_id: input_select.status_machine_a_laver
-    - conditions:
-      - condition: trigger
-        id: machine-waiting
-      - condition: state
-        entity_id: input_select.status_machine_a_laver
-        state: En cours
+        id:
+        - machine-finished
       sequence:
       - service: input_select.select_option
         data:
           option: Terminé
-        target:
-          entity_id: input_select.status_machine_a_laver
-    - conditions:
-      - condition: trigger
-        id: machine-waiting
-      - condition: state
-        entity_id: input_select.status_machine_a_laver
-        state: Éteins
-      sequence:
-      - service: input_select.select_option
-        data:
-          option: En attente
         target:
           entity_id: input_select.status_machine_a_laver
     - conditions:
@@ -126,4 +91,111 @@
           option: En cours
         target:
           entity_id: input_select.status_machine_a_laver
+  mode: single
+- id: '1688855930899'
+  alias: 'Turn off Clim '
+  description: ''
+  trigger:
+  - type: temperature
+    platform: device
+    device_id: 671fa9ec950eb3ad693ce0265811ab0e
+    entity_id: sensor.chambre_temperature
+    domain: sensor
+    below: 24
+    above: 17
+  condition:
+  - type: is_temperature
+    condition: device
+    device_id: 671fa9ec950eb3ad693ce0265811ab0e
+    entity_id: sensor.chambre_temperature
+    domain: sensor
+    below: 23
+    above: 17
+  action:
+  - device_id: acfeded08b99c8275ab445040415db85
+    domain: climate
+    entity_id: climate.forceclima
+    type: set_hvac_mode
+    hvac_mode: 'off'
+  mode: single
+- id: '1688856041173'
+  alias: auto clim
+  description: ''
+  trigger:
+  - platform: device
+    device_id: 671fa9ec950eb3ad693ce0265811ab0e
+    domain: climate
+    entity_id: climate.smart_radiator_thermostat_chambre
+    type: current_temperature_changed
+    above: 25
+  condition:
+  - condition: time
+    after: 00:00:00
+    before: '11:00:00'
+  action:
+  - device_id: acfeded08b99c8275ab445040415db85
+    domain: climate
+    entity_id: climate.forceclima
+    type: set_hvac_mode
+    hvac_mode: cool
+  mode: single
+- id: '1690408049218'
+  alias: Lance Retrobat
+  description: ''
+  trigger: []
+  condition: []
+  action:
+  - service: button.press
+    data: {}
+    target:
+      entity_id: button.launchretrobat
+  mode: single
+- id: '1713253703491'
+  alias: 'Commute - Update Loïc '
+  description: ''
+  triggers:
+  - minutes: /5
+    trigger: time_pattern
+  conditions:
+  - condition: time
+    after: 08:00:00
+    before: '11:00:00'
+  - condition: time
+    weekday:
+    - mon
+    - tue
+    - wed
+    - thu
+    - fri
+  actions:
+  - target:
+      entity_id: sensor.trajet_travail_loic
+    data:
+      entity_id:
+      - sensor.trajet_travail_loic
+    action: homeassistant.update_entity
+  mode: single
+- id: '1750148816007'
+  alias: 'Commute - Update Emma '
+  description: ''
+  triggers:
+  - minutes: /5
+    trigger: time_pattern
+  conditions:
+  - condition: time
+    after: 06:00:00
+    before: 09:00:00
+  - condition: time
+    weekday:
+    - wed
+    - thu
+    - fri
+    - sat
+  actions:
+  - target:
+      entity_id: sensor.trajet_travail_emma
+    data:
+      entity_id:
+      - sensor.trajet_travail_emma
+    action: homeassistant.update_entity
   mode: single

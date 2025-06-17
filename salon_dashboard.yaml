@@ -75,6 +75,12 @@ views:
                   entity_id: input_boolean.laundry_display
               template: laundry
 
+          - type: weather-forecast
+            entity: weather.maison
+            secondary_info_attribute: humidity
+            show_current: true
+            show_forecast: true
+
       #################################################
       #                                               #
       #                  Salon                        #
@@ -169,7 +175,7 @@ views:
                   return trigger === undefined || trigger;
                 ]]]
           - type: custom:button-card
-            entity: climate.bureau
+            entity: climate.smart_radiator_thermostat_bureau
             name: Tado
             tap_action: !include popup/tado-bureau.yaml
             template:
@@ -210,9 +216,9 @@ views:
             template:
               - conditional_media
               - icon_nest_mini
-              
+
           - type: custom:button-card
-            entity: climate.salon
+            entity: climate.smart_thermostat_salon
             name: Tado
             tap_action: !include popup/tado-salon.yaml
             template:
@@ -228,7 +234,6 @@ views:
                       entity.attributes.current_temperature;
                   }
                 ]]]
-
 
       #################################################
       #                                               #
@@ -249,7 +254,7 @@ views:
               - light
               - icon_lamp
           - type: custom:button-card
-            entity: climate.chambre
+            entity: climate.smart_radiator_thermostat_chambre
             name: Tado
             tap_action: !include popup/tado-chambre.yaml
             template:
@@ -469,7 +474,7 @@ views:
 
           - type: custom:button-card
             entity: script.home_arrive
-            name: Hemma
+            name: Maison
             hold_action:
               action: none
             template:

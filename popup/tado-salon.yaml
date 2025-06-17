@@ -6,8 +6,9 @@ browser_mod:
       type: vertical-stack
       cards:
         - type: custom:thermostat-card
-          entity: climate.salon
-   
+          entity: climate.smart_thermostat_salon
+          no_card: true
+
         - type: entities
           card_mod:
             class: content
@@ -16,7 +17,7 @@ browser_mod:
               name: Température
             - entity: sensor.salon_humidity
               name: Humidité
-   
+
         - type: custom:apexcharts-card
           layout: minimal
           locale: fr
@@ -73,9 +74,10 @@ browser_mod:
                 func: avg
                 duration: 24h
   style:
-   hui-vertical-stack-card:
-     $hui-entities-card$: |
-       #states {
-         padding-top: 0.5em;
-         padding-bottom: 0em;
-       }
+    hui-vertical-stack-card:
+      $hui-entities-card$: |
+        #states {
+          border-style:none;
+          padding-top: 0.5em;
+          padding-bottom: 0em;
+        }

@@ -38,7 +38,7 @@ base:
     media_on: >
       [[[ return entity === undefined || ['playing', 'paused'].indexOf(entity.state) !== -1; ]]]
     media_off: >
-      [[[ return entity === undefined || ['off', 'idle', 'standby', 'unknown', 'unavailable'].indexOf(entity.state) !== -1; ]]]
+      [[[ return entity === undefined || ['off', 'idle', 'standby', 'unknown', 'Non disponible'].indexOf(entity.state) !== -1; ]]]
     entity_picture: >
       [[[ return entity === undefined || entity.attributes.entity_picture; ]]]
     timeout: >
@@ -69,7 +69,7 @@ base:
   # tap_action:
   #   ui_sound_tablet: |
   #     [[[
-  #       let screensaver = states[variables.entity_tablet] === undefined || 
+  #       let screensaver = states[variables.entity_tablet] === undefined ||
   #         states[variables.entity_tablet].state;
 
   #       if (variables.state === 'off' && screensaver === 'off') {
@@ -87,7 +87,7 @@ base:
   #         });
   #       }
   #     ]]]
-    # action: toggle
+  # action: toggle
 
   hold_action:
     haptic: success
@@ -388,8 +388,8 @@ sidebar:
         line-height: calc(var(--sidebar-time-line-height) * 1.4 );
       }
       p {
-        font-size: calc(var(--sidebar-font-size) * 1.4 );
-        line-height: calc(var(--sidebar-line-height) * 1.4 );
+        font-size: calc(var(--sidebar-font-size) * 1.2 );
+        line-height: calc(var(--sidebar-line-height) * 1.2 );
       }
     }
     /* phone */
@@ -427,7 +427,7 @@ footer:
       [[[ return { max: 5, scale: 1.1, glare: true, 'max-glare': 0.07, perspective: 1000, speed: 800, parallax: '10px' }; ]]]
   size: 2vw
   show_icon: false
-  color: '#9da0a2'
+  color: "#9da0a2"
   custom_fields:
     notify: >
       [[[
@@ -464,8 +464,8 @@ footer:
         - top: -0.9vw
         - right: -1vw
         - font-weight: 700
-        - color: '#d6d6d6'
-        - background: '#8b3333'
+        - color: "#d6d6d6"
+        - background: "#8b3333"
         - border-radius: 50%
         - text-align: center
         - text-overflow: unset
@@ -474,7 +474,6 @@ footer:
     action: none
   tap_action:
     haptic: medium
-
 
 #################################################
 #                                               #
@@ -591,8 +590,10 @@ climate:
   custom_fields:
     circle: >
       [[[
-        if (entity && entity.attributes.temperature && entity.attributes.current_temperature) {
-          let input = variables.circle_input == null ? ' ' : `${parseInt(variables.circle_input)}<tspan font-size="10">°C</tspan>`,
+        if (entity && entity.attributes && 'current_temperature' in entity.attributes) {
+          let input = variables.circle_input == null ?
+            `${parseInt(entity.attributes.current_temperature)}<tspan font-size="10">°C</tspan>` :
+            `${parseInt(variables.circle_input)}<tspan font-size="10">°C</tspan>`,
             stroke_color = variables.state === 'cool' || variables.state === 'fan_only' ? '#b2b2b2' : 'none',
             fill_color = variables.state === 'off' ? 'rgba(255,255,255,0.04)' : 'none';
           return `
@@ -830,7 +831,7 @@ light:
         brightnessWidth: 130px
         brightnessHeight: 360px
         borderRadius: 1.7em
-        sliderColor: '#c7c7c7'
+        sliderColor: "#c7c7c7"
         sliderTrackColor: rgba(25, 25, 25, 0.9)
         displayType: slider
         actionSize: 4.5em
@@ -838,21 +839,21 @@ light:
         actions:
           - action: call-service
             service: light.turn_on
-            color: '#d8d9e1'
+            color: "#d8d9e1"
             service_data:
               entity_id: >
                 [[[ return variables.entity_id; ]]]
               color_temp: 153
           - action: call-service
             service: light.turn_on
-            color: '#d5b08d'
+            color: "#d5b08d"
             service_data:
               entity_id: >
                 [[[ return variables.entity_id; ]]]
               color_temp: 326
           - action: call-service
             service: light.turn_on
-            color: '#ce944b'
+            color: "#ce944b"
             service_data:
               entity_id: >
                 [[[ return variables.entity_id; ]]]
@@ -927,7 +928,7 @@ person:
             let s = (c/1e3), m = (c/6e4), h = (c/36e5), d = (c/864e5);
             return s < 60 ? parseInt(s) + 's' : m < 60 ? parseInt(m) + 'm' : h < 24 ? parseInt(h) + 'h' : parseInt(d) + 'd';
           },
-          last_changed = states[variables.retain] == null || states[variables.retain].state == 'unavailable'
+          last_changed = states[variables.retain] == null || states[variables.retain].state == 'Non disponible'
             ? time(Date.now() - Date.parse(entity.last_changed))
             : time(Date.now() - Date.parse(states[variables.retain].state)),
           stroke = variables.state === 'home'
@@ -999,7 +1000,7 @@ media:
       icon:
         - width: 70%
         - margin-left: 2%
-        - fill: '#9da0a2'
+        - fill: "#9da0a2"
         - display: >
             [[[
               return variables.media_off || variables.entity_picture === undefined
@@ -1030,30 +1031,17 @@ conditional_media:
     - base
     - media_youtube
     - icon_play_pause
-  variables:
-    i: >
-      [[[
-        if (entity) {
-          let data = entity.attributes.data;
-          return data === undefined || Math.floor(Math.random() * (data.length - 1)) + 1;
-        }
-      ]]]
+
   state_display: >
     [[[
       if (entity) {
         let elt = this.shadowRoot,
           await = setTimeout(marquee,0),
-          data = entity.attributes.data,
-          artist = entity.attributes.media_artist,
-          title = entity.attributes.media_title;
+          name = entity.attributes.Name;
+          seriesName = entity.attributes.SeriesName
 
-          if (data !== undefined) {
-            var number = data[variables.i].number === undefined && data[variables.i].aired !== undefined
-              ? `(${data[variables.i].aired.split("-")[0]})`
-              : data[variables.i].number === undefined && data[variables.i].aired === undefined
-                ? ' '
-                : data[variables.i].number,
-              output = `${data[variables.i].title} ${number}`;
+          if (name !== undefined) {
+              output = `${seriesName} - ${name}`;
           } else {
             var output = artist === undefined && title !== undefined
               ? title
@@ -1119,9 +1107,8 @@ conditional_media:
       - background-image: &media_background_image >
           [[[
             if (entity) {
-              return entity.attributes.data !== undefined
-                ? `url("${entity.attributes.data[variables.i].fanart}"), url("${entity.attributes.data[variables.i].poster}")`
-                : `url("${variables.entity_picture}")`;
+              return entity.attributes.ParentBackdropItemId !== undefined
+                ? `url("http://192.168.1.21:8096/Items/${entity.attributes.ParentBackdropItemId}/Images/Primary?tag=${entity.attributes.ParentBackdropImageTags}")`:''
             }
           ]]]
       - color: >
@@ -1181,7 +1168,7 @@ conditional_media:
 
 media_youtube:
   variables:
-    token: 
+    token:
   custom_fields:
     youtube: >
       [[[
@@ -1323,9 +1310,9 @@ laundry:
       ]]]
   styles:
     card:
-      - background: '#202a2f30'
+      - background: "#202a2f30"
       - border-radius: 0.7vw
-      - border: '0.2vw solid #292c2e'
+      - border: "0.2vw solid #292c2e"
     state:
       - font-size: 2.7vw
       - font-family: SF Mono, Roboto
@@ -1340,31 +1327,31 @@ laundry:
 
 icon_name:
   size: 1.4em
-  color: '#9da0a2'
+  color: "#9da0a2"
   styles:
     grid:
       - grid-template-areas: '"i n"'
       - grid-column-gap: 0.3em
     card:
-      - color: '#9da0a2'
+      - color: "#9da0a2"
       - border-radius: 0.6em
       - padding: 1em 1.4em 1em 1.2em
       - width: max-content
       - font-size: 1.06em
       - font-weight: 500
       - letter-spacing: 0.015em
-      - background: '#FFFFFF10'
+      - background: "#FFFFFF10"
 
 icon_only:
   show_name: false
-  color: '#9da0a2'
+  color: "#9da0a2"
   styles:
     card:
-      - color: '#9da0a2'
+      - color: "#9da0a2"
       - border-radius: 0.6em
       - width: 4em
       - height: 3.7em
-      - background: '#FFFFFF10'
+      - background: "#FFFFFF10"
 
 #################################################
 #                                               #
@@ -1413,7 +1400,7 @@ icon_play_pause:
         - width: 21%
         - height: 21%
         - position: absolute
-        - fill: '#dedede'
+        - fill: "#dedede"
         - overflow: visible
         - filter: >
             [[[
@@ -2334,7 +2321,7 @@ icon_home:
 icon_jellyfin:
   custom_fields:
     icon:
-       <svg id="icon-solid-black" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512">
+      <svg id="icon-solid-black" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512">
       <g id="icon-solid">
       <path id="inner-shape" d="M256,201.62c-20.44,0-86.23,119.29-76.2,139.43s142.48,19.92,152.4,0S276.47,201.63,256,201.62Z" fill="#282a2d"/>
       <path id="outer-shape" d="M256,23.3C194.44,23.3-3.82,382.73,26.41,443.43s429.34,60,459.24,0S317.62,23.3,256,23.3ZM406.51,390.76c-19.59,39.33-281.08,39.77-300.89,0S215.71,115.48,256.06,115.48,426.1,351.42,406.51,390.76Z" fill="#282a2d"/>
