@@ -981,3 +981,46 @@ icon_jellyfin:
       <path id="outer-shape" d="M256,23.3C194.44,23.3-3.82,382.73,26.41,443.43s429.34,60,459.24,0S317.62,23.3,256,23.3ZM406.51,390.76c-19.59,39.33-281.08,39.77-300.89,0S215.71,115.48,256.06,115.48,426.1,351.42,406.51,390.76Z" fill="#282a2d"/>
       </g>
       </svg>
+
+
+icon_wallbox:
+  styles:
+    custom_fields:
+      icon:
+        - width: 65%        
+        - margin-left: -1%   
+        - margin-top: 5%   
+  custom_fields:
+    icon: >
+      [[[
+        const isCharging = entity && entity.state === 'Charging';
+        const stateClass = isCharging ? 'charging' : 'idle';
+
+        return `
+          <svg viewBox="0 0 150 165">
+            <style>
+              .wallbox-path {
+                transition: fill 0.3s ease-in-out;
+              }
+              .idle .wallbox-path {
+                fill: #9da0a2;
+              }
+              .charging .wallbox-path {
+                fill: #2979b6be;
+              }
+              .charging #wallbox-handle {
+                animation: charge-pulse 1.5s infinite ease-in-out;
+              }
+              @keyframes charge-pulse {
+                0% { opacity: 1; }
+                50% { opacity: 0.7; }
+                100% { opacity: 1; }
+              }
+            </style>
+            <g class="${stateClass}">
+              <path id="wallbox-handle" class="wallbox-path" d="M91.6,39.2c0,10.1,0,0.8,0,24.1h-21v32.6c0,4-1.7,7.5-6.8,7.5c-5.1,0-6.9-3.5-6.9-7.5V63.3H35.6v32.6c0,4-1.7,7.5-6.8,7.5 s-6.8-3.5-6.8-7.5V63.3H0C0,38.1,0.2,46,0.2,39.1C0.2,12.7,23.4,0,45.8,0C68.3,0,91.6,12.6,91.6,39.2z"/>
+              <path id="wallbox-base" class="wallbox-path" d="M64.5,128.2c-6.8,0-13.7-3.7-18.4-9.1h-0.1c-4.7,5.3-11.6,9.1-18.4,9.1c-8.4,0-16.4-3.3-21.5-9.1H0 C0,144.5,20.5,165,45.8,165c25.3,0,45.8-20.5,45.8-45.8H86C80.9,124.9,72.9,128.2,64.5,128.2L64.5,128.2z"/>
+            </g>
+          </svg>
+        `;
+      ]]]

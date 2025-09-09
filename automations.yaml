@@ -95,23 +95,19 @@
 - id: '1688855930899'
   alias: 'Turn off Clim '
   description: ''
-  trigger:
+  triggers:
   - type: temperature
-    platform: device
-    device_id: 671fa9ec950eb3ad693ce0265811ab0e
-    entity_id: sensor.chambre_temperature
+    device_id: c596f9162a5a2e3afc5f8c288298336f
+    entity_id: f702696eb9afada9f99e32226bee0aef
     domain: sensor
-    below: 24
+    trigger: device
+    below: 22
     above: 17
-  condition:
-  - type: is_temperature
-    condition: device
-    device_id: 671fa9ec950eb3ad693ce0265811ab0e
-    entity_id: sensor.chambre_temperature
-    domain: sensor
-    below: 23
-    above: 17
-  action:
+  conditions:
+  - condition: time
+    after: '21:00:00'
+    before: 08:00:00
+  actions:
   - device_id: acfeded08b99c8275ab445040415db85
     domain: climate
     entity_id: climate.forceclima
@@ -121,18 +117,18 @@
 - id: '1688856041173'
   alias: auto clim
   description: ''
-  trigger:
-  - platform: device
-    device_id: 671fa9ec950eb3ad693ce0265811ab0e
-    domain: climate
-    entity_id: climate.smart_radiator_thermostat_chambre
-    type: current_temperature_changed
-    above: 25
-  condition:
+  triggers:
+  - type: temperature
+    device_id: c596f9162a5a2e3afc5f8c288298336f
+    entity_id: f702696eb9afada9f99e32226bee0aef
+    domain: sensor
+    trigger: device
+    above: 22
+  conditions:
   - condition: time
     after: 00:00:00
     before: '11:00:00'
-  action:
+  actions:
   - device_id: acfeded08b99c8275ab445040415db85
     domain: climate
     entity_id: climate.forceclima
@@ -198,4 +194,22 @@
       entity_id:
       - sensor.trajet_travail_emma
     action: homeassistant.update_entity
+  mode: single
+- id: '1756053962145'
+  alias: 'Buanderie lumière '
+  description: ''
+  triggers:
+  - domain: mqtt
+    device_id: e8ff7021a89f66fd5dc75a60f3856306
+    type: action
+    subtype: single_l1
+    trigger: device
+  conditions: []
+  actions:
+  - action: light.toggle
+    metadata: {}
+    data:
+      transition: 0
+    target:
+      entity_id: light.spot_buanderie
   mode: single

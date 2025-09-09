@@ -1,0 +1,82 @@
+action: fire-dom-event
+browser_mod:
+  service: browser_mod.popup
+  data:
+    title: Wallbox Pulsar Plus
+    content:
+      type: vertical-stack
+      cards:
+        # --- Main Status & Controls ---
+        - type: entities
+          card_mod:
+            style: |
+              #states { padding-top: 0.5em; padding-bottom: 0em; }
+          entities:
+            - entity: sensor.wallbox_portal_status_description
+              name: Statut
+              secondary_info: last-changed
+            - entity: sensor.wallbox_portal_state_of_charge
+              name: État de charge
+            - entity: switch.wallbox_portal_pause_resume
+              name: Contrôle
+
+        # --- Current Session Metrics ---
+        - type: entities
+          title: Session en Cours
+          show_header_toggle: false
+          card_mod:
+            style: |
+              #states { padding-top: 0.5em; padding-bottom: 0em; }
+          entities:
+            - entity: sensor.wallbox_portal_charging_power
+              name: Puissance de charge
+            - entity: sensor.wallbox_portal_added_energy
+              name: Énergie ajoutée
+            - entity: sensor.wallbox_portal_added_range
+              name: Autonomie ajoutée
+            - entity: sensor.wallbox_portal_cost
+              name: Coût de la session
+
+        # --- Historical Chart (Corrected Layout) ---
+        - type: custom:apexcharts-card
+          layout: minimal
+          locale: fr
+          graph_span: 8h
+          show:
+            loading: false
+          yaxis:
+            - id: power
+              show: true
+              apex_config:
+                tickAmount: 4 # Réduit le nombre d'étiquettes pour plus de clarté
+          apex_config:
+            chart:
+              height: 160px   # Un peu plus de hauteur pour un meilleur visuel
+              offsetY: 0      # Suppression du décalage qui causait des problèmes
+            grid:
+              padding:
+                left: 5       # Espace pour les chiffres de l'axe Y de gauche
+                right: 5      # Espace pour les chiffres de l'axe Y de droite
+                top: 10       # Un peu d'espace en haut
+                bottom: -10   # Réduit l'espace vide en bas
+            stroke:
+              width: 3        # Une ligne légèrement plus fine
+            tooltip:
+              style: { fontSize: "14px" }
+              x: { format: "dddd HH:mm" }
+            xaxis: { crosshairs: { show: false } }
+            fill:
+              type: gradient
+              gradient: { type: "vertical", opacityFrom: 0.8, opacityTo: 0, stops: [0, 99, 100] }
+          series:
+            - entity: sensor.wallbox_portal_charging_power
+              name: Puissance
+              color: "#5daeea"
+              curve: smooth
+              type: area
+              fill_raw: last
+              group_by:
+                func: avg
+                duration: 5m
+              yaxis_id: power
+

@@ -1,0 +1,46 @@
+lancer_le_mode_console:
+  alias: Lancer le Mode Console
+  description: Allume le PC, la TV Samsung, bascule sur la session Console et lance
+    l'interface de jeu.
+  icon: mdi:gamepad-variant-outline
+  mode: single
+  sequence:
+  - action: media_player.turn_on
+    data: {}
+  - data:
+      mac: 2C:F0:5D:E3:29:75
+    action: wake_on_lan.send_magic_packet
+  - data:
+      source: HDMI
+    action: media_player.select_source
+    target:
+      entity_id: media_player.samsung_tv_remote
+  - wait_for_trigger:
+    - entity_id:
+      - device_tracker.pc_loic_5
+      to: Active
+      trigger: state
+    timeout:
+      minutes: 2
+  - action: button.press
+    data: {}
+    target:
+      entity_id: button.pc_loic_pc_set_console_flag
+  - delay:
+      seconds: 2
+  - action: button.press
+    data: {}
+    target:
+      entity_id: button.pc_loic_restart
+  - wait_for_trigger:
+    - entity_id: sensor.ton_pc_hass_agent_status
+      to: Active
+      trigger: state
+    timeout:
+      minutes: 2
+  - delay:
+      seconds: 10
+  - action: button.press
+    data: {}
+    target:
+      entity_id: button.pc_loic_pc_switch_to_tv

@@ -139,7 +139,7 @@ views:
               - loader
           - type: custom:button-card
             entity: climate.smart_thermostat_salon
-            name: 
+            name:
             tap_action:
               action: more-info
             template:
@@ -296,14 +296,15 @@ views:
               action: more-info
 
           - type: custom:button-card
-            entity: climate.smart_radiator_thermostat_chambre
-            name: Tado
+            entity: sensor.thermo_sdb_temperature
+            name:
             tap_action:
               action: more-info
             template:
               - base
               - circle
               - icon_climate
+
             variables:
               circle_input: >
                 [[[
@@ -333,6 +334,7 @@ views:
                   }
                 ]]]
               circle_input_unit: "°C"
+
           - type: custom:button-card
             entity: fan.dyson_purifier_hot_cool
             name: "Dyson Purifier"
@@ -494,7 +496,7 @@ views:
         columns: 2
         cards:
           - type: custom:button-card
-            entity: light.buanderie
+            entity: light.spot_buanderie
             name: LED
             template:
               - light
@@ -550,30 +552,6 @@ views:
                   }
                 ]]]
               circle_input_unit: "°C"
-          # - type: custom:button-card
-          #   entity: light.group_badrumz
-          #   name: Badrum
-          #   template:
-          #     - light
-          #     - icon_bathroom
-
-          # - type: custom:button-card
-          #   entity: switch.gosund_fan_switch
-          #   name: "Fläkt\u00B2"
-          #   hold_action: !include popup/bureau_flakt.yaml
-          #   template:
-          #     - base
-          #     - icon_fan2
-          #     - loader
-
-          # - type: custom:button-card
-          #   entity: light.garderob
-          #   name: Garderob
-          #   template:
-          #     - light
-          #     - icon_closet
-
-
 
       #################################################
       #                                               #
@@ -608,13 +586,31 @@ views:
             template: person
 
           - type: custom:button-card
-            entity: script.home_leave
-            name: Fermez tout
-            hold_action:
-              action: none
+            entity: sensor.wallbox_portal_status_description
+            name: Chargeur
             template:
-              - base
-              - icon_away
+              - wallbox_charger
+              - circle
+              - icon_wallbox
+              - loader
+            tap_action: !include popup/wallbox_charger.yaml # <-- Ceci est la syntaxe correcte
+            hold_action:
+              action: call-service
+              service: switch.toggle
+              service_data:
+                entity_id: switch.wallbox_portal_pause_resume
+              haptic: light
+            variables:
+              circle_input: >
+                [[[
+                  const powerState = states['sensor.wallbox_portal_charging_power'].state;
+                  const power = parseFloat(powerState);
+                  if (isNaN(power) || power <= 0) {
+                    return '';
+                  }
+                  return power.toFixed(2);
+                ]]]
+              circle_input_unit: "kW"
 
           - type: custom:button-card
             entity: script.home_arrive
@@ -971,7 +967,7 @@ views:
 
           - type: custom:button-card
             entity: climate.smart_radiator_thermostat_bureau
-            name: 
+            name:
             tap_action:
               action: more-info
             template:

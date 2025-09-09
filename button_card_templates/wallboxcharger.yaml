@@ -1,0 +1,9 @@
+wallbox_charger:
+  template: base
+  variables:
+    state_on: >
+      [[[
+        // Returns true if the state is 'Charging' (case-insensitive)
+        if (!entity) return false;
+        return entity.state.toLowerCase() === 'charging';
+      ]]]

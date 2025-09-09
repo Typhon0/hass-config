@@ -8,7 +8,7 @@ http:
   login_attempts_threshold: 100
 auth_header:
   allow_bypass_login: false
-
+default_config:
 my:
 energy:
 homeassistant:
@@ -20,7 +20,6 @@ homeassistant:
   time_zone: Europe/Paris
   currency: EUR
   country: FR
-  language: FR
   external_url: !secret external_url
   internal_url: !secret internal_url
   allowlist_external_dirs:
@@ -47,9 +46,6 @@ media_player:
     name: "hass agent  mediaplayer"
     host: !secret hass_agent_mediaplayer_host
     port: 5115
-  - platform: samsungtv_tizen
-    host: !secret samsungtv_host
-    mac: !secret samsungtv_mac
 tts:
   - platform: google_translate
 proxmoxve:
@@ -76,13 +72,14 @@ template: !include template.yaml
 sensor: !include sensors.yaml
 
 lovelace:
-  mode: yaml #use ui-lovelace.yaml
-  resources: #hacs
-    - url: /local/jellyfin-next-up-card.js
+  mode: yaml # This line is correct
+lovelace:
+  mode: yaml # Cette ligne est correcte
+  resources:
+    # --- Cartes et modules HACS ---
+    - url: /hacsfiles/button-card/button-card.js
       type: module
     - url: /hacsfiles/lovelace-thermostat-card/main.js
-      type: module
-    - url: /hacsfiles/button-card/button-card.js
       type: module
     - url: /hacsfiles/my-cards/my-cards.js
       type: module
@@ -106,6 +103,9 @@ lovelace:
       type: module
     - url: /hacsfiles/lovelace-auto-entities/auto-entities.js
       type: module
+    # --- Fichiers personnalisés dans /local/ ---
+    - url: /local/jellyfin-next-up-card.js
+      type: module
     - url: /local/calendar-card.js?v=3.109.1
       type: module
     - url: /local/custom_icons.js?v=28082021
@@ -116,9 +116,6 @@ lovelace:
       type: module
     - url: /local/font.css
       type: css
-    - url: /hacsfiles/kiosk-mode/kiosk-mode.js
-      type: module
-
   dashboards:
     lovelace-salon: # Needs to contain a hyphen (-)
       mode: yaml
