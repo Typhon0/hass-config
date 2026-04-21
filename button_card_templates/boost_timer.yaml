@@ -1,0 +1,49 @@
+boost_timer:
+  template:
+    - base
+  variables:
+    state_on: >
+      [[[
+        return ['on', 'home', 'cool', 'fan_only', 'playing', 'unlocked', 'active']
+          .indexOf(!entity || entity.state) !== -1;
+      ]]]
+  custom_fields:
+    icon: >
+      [[[
+        const color =
+          entity && entity.state === 'active'
+            ? 'var(--warning-color)'
+            : '#97989c';
+
+        return `
+          <ha-icon
+            icon="mdi:water-boiler"
+            style="
+              width: 42px;
+              height: 42px;
+              color: ${color};
+            ">
+          </ha-icon>
+        `;
+      ]]]
+  styles:
+    grid:
+      - grid-template-areas: |
+          "icon  icon"
+          "n     n"
+          "s     s"
+      - grid-template-columns: 1fr 1fr
+      - grid-template-rows: auto repeat(2, min-content)
+      - gap: 1.3%
+      - align-items: start
+    custom_fields:
+      icon:
+        - justify-self: start
+        - align-self: start
+        - padding-bottom: 6px
+    name:
+      - justify-self: start
+      - line-height: 121%
+    state:
+      - justify-self: start
+      - line-height: 115%

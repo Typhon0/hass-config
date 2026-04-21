@@ -111,10 +111,20 @@
           {% if (timeForCommute >= 6 and timeForCommute < 9) and (currentDay in [1, 2, 3, 4]) %}
           <b class="commute">Travail Emma: {{travelemma}}</b>
           {% endif %}
+        tarif: >
+          {% set heure = now().hour %}
+          {% set minute = now().minute %}
+          {% set time = heure * 60 + minute %}
+          {# Heures Creuses: 21h22 - 5h22 #}
+          {% if time >= 1282 or time < 322 %}
+            <span class="tarif hc">HC</span>
+          {% else %}
+            <span class="tarif hp">HP</span>
+          {% endif %}
 
 - sensor:
   - name: gas_energy
-    unit_of_measurement: 'kWh'      
+    unit_of_measurement: 'kWh'
     state: >
       {{ states('sensor.gazpar') }}
     icon: mdi:fire

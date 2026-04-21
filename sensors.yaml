@@ -52,11 +52,10 @@
   scan_interval: 10
   value_template: "OK"
   # value_template: '{{ value_json[0].NowPlayingItem.SeriesId }}'
-
-- platform: 'gazpar'
-  name: 'gazpar'
-  username: !secret gazpar_username
-  password: !secret gazpar_password
-  pce_identifier: '05685238764120'
-  tmpdir: '/tmp'
-  scan_interval: '08:00:00'
+# - platform: 'gazpar'
+#   name: 'gazpar'
+#   username: !secret gazpar_username
+#   password: !secret gazpar_password
+#   pce_identifier: '05685238764120'
+#   tmpdir: '/tmp'
+#   scan_interval: '08:00:00'

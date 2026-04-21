@@ -12,12 +12,12 @@ browser_mod:
             style: |
               #states { padding-top: 0.5em; padding-bottom: 0em; }
           entities:
-            - entity: sensor.wallbox_portal_status_description
+            - entity: sensor.wallbox_pulsar_max_sn_1331158_status_description
               name: Statut
               secondary_info: last-changed
-            - entity: sensor.wallbox_portal_state_of_charge
+            - entity: sensor.wallbox_pulsar_max_sn_1331158_state_of_charge
               name: État de charge
-            - entity: switch.wallbox_portal_pause_resume
+            - entity: switch.wallbox_pulsar_max_sn_1331158_pause_resume
               name: Contrôle
 
         # --- Current Session Metrics ---
@@ -28,13 +28,13 @@ browser_mod:
             style: |
               #states { padding-top: 0.5em; padding-bottom: 0em; }
           entities:
-            - entity: sensor.wallbox_portal_charging_power
+            - entity: sensor.wallbox_pulsar_max_sn_1331158_charging_power
               name: Puissance de charge
-            - entity: sensor.wallbox_portal_added_energy
+            - entity: sensor.wallbox_pulsar_max_sn_1331158_added_energy
               name: Énergie ajoutée
-            - entity: sensor.wallbox_portal_added_range
+            - entity: sensor.wallbox_pulsar_max_sn_1331158_added_range
               name: Autonomie ajoutée
-            - entity: sensor.wallbox_portal_cost
+            - entity: sensor.wallbox_pulsar_max_sn_1331158_cost
               name: Coût de la session
 
         # --- Historical Chart (Corrected Layout) ---
@@ -69,7 +69,7 @@ browser_mod:
               type: gradient
               gradient: { type: "vertical", opacityFrom: 0.8, opacityTo: 0, stops: [0, 99, 100] }
           series:
-            - entity: sensor.wallbox_portal_charging_power
+            - entity: sensor.wallbox_pulsar_max_sn_1331158_charging_power
               name: Puissance
               color: "#5daeea"
               curve: smooth

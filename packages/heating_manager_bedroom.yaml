@@ -1,0 +1,376 @@
+input_number:
+  heating_bedroom_comfort_temp:
+    name: Heating Bedroom Comfort Temp
+    min: 14
+    max: 23
+    step: 0.5
+    unit_of_measurement: "°C"
+    mode: box
+    initial: 17.0
+  hot_water_boost_restore_temp:
+    name: Hot Water Boost Restore Temp
+    min: 10
+    max: 60
+    step: 1
+    unit_of_measurement: "°C"
+    mode: box
+    initial: 10
+
+  heating_bedroom_eco_temp:
+    name: Heating Bedroom Eco Temp
+    min: 14
+    max: 23
+    step: 0.5
+    unit_of_measurement: "°C"
+    mode: box
+    initial: 16.0
+
+  heating_bedroom_away_temp:
+    name: Heating Bedroom Away Temp
+    min: 12
+    max: 20
+    step: 0.5
+    unit_of_measurement: "°C"
+    mode: box
+    initial: 15.5
+
+  heating_bedroom_rescue_temp:
+    name: Heating Bedroom Rescue Temp
+    min: 14
+    max: 23
+    step: 0.5
+    unit_of_measurement: "°C"
+    mode: box
+    initial: 17.2
+
+sensor:
+  - platform: statistics
+    name: Heating Outside Temp Mean 48h
+    entity_id: sensor.vitrocrossal_300_cu3a_outside_temperature
+    state_characteristic: mean
+    max_age:
+      hours: 48
+
+template:
+  - binary_sensor:
+      - name: Heating Someone Home
+        unique_id: heating_someone_home
+        state: >
+          {{ states('zone.home') | int(0) > 0 }}
+
+      - name: Heating Cool Night Rescue
+        unique_id: heating_cool_night_rescue
+        state: >
+          {% set someone_home = is_state('binary_sensor.heating_someone_home', 'on') %}
+          {% set room_temp = states('sensor.thermo_1_temperature') | float(99) %}
+          {% set outside_temp = states('sensor.vitrocrossal_300_cu3a_outside_temperature') | float(99) %}
+          {% set hour = now().hour %}
+          {{
+            someone_home
+            and (hour >= 22 or hour < 8)
+            and room_temp < 16.8
+            and outside_temp < 11
+          }}
+
+      - name: Heating Summer Mode Auto
+        unique_id: heating_summer_mode_auto
+        delay_on: "24:00:00"
+        delay_off: "02:00:00"
+        state: >
+          {% set avg_outside = states('sensor.heating_outside_temp_mean_48h') | float(-99) %}
+          {% set outside_temp = states('sensor.vitrocrossal_300_cu3a_outside_temperature') | float(-99) %}
+          {% set room_temp = states('sensor.thermo_1_temperature') | float(99) %}
+          {% set cool_night_rescue = is_state('binary_sensor.heating_cool_night_rescue', 'on') %}
+          {{
+            avg_outside > 16.5
+            and outside_temp > 14
+            and room_temp > 17.5
+            and not cool_night_rescue
+          }}
+
+      - name: Heating Bedroom Needs Heat
+        unique_id: heating_bedroom_needs_heat
+        state: >
+          {% set room_temp = states('sensor.thermo_1_temperature') | float(99) %}
+          {% set target = states('sensor.heating_bedroom_target_temp') | float(16) %}
+          {% set summer_mode = is_state('binary_sensor.heating_summer_mode_auto', 'on') %}
+          {% set cool_night_rescue = is_state('binary_sensor.heating_cool_night_rescue', 'on') %}
+          {% set on_below = target - 0.3 %}
+          {% set off_above = target + 0.2 %}
+
+          {% if summer_mode and not cool_night_rescue %}
+            false
+          {% elif this.state == 'on' %}
+            {{ room_temp < off_above }}
+          {% else %}
+            {{ room_temp < on_below }}
+          {% endif %}
+
+      - name: Heating House Needs Heat
+        unique_id: heating_house_needs_heat
+        state: >
+          {{
+            is_state('binary_sensor.heating_bedroom_needs_heat', 'on')
+            or is_state('binary_sensor.heating_living_room_needs_heat', 'on')
+            or is_state('binary_sensor.heating_office_needs_heat', 'on')
+          }}
+
+  - sensor:
+      - name: Heating Bedroom Target Temp
+        unique_id: heating_bedroom_target_temp
+        unit_of_measurement: "°C"
+        state: >
+          {% set someone_home = is_state('binary_sensor.heating_someone_home', 'on') %}
+          {% set schedule_on = is_state('schedule.schedule_chauffage', 'on') %}
+          {% set summer_mode = is_state('binary_sensor.heating_summer_mode_auto', 'on') %}
+          {% set cool_night_rescue = is_state('binary_sensor.heating_cool_night_rescue', 'on') %}
+
+          {% set comfort_temp = states('input_number.heating_bedroom_comfort_temp') | float(17.0) %}
+          {% set eco_temp = states('input_number.heating_bedroom_eco_temp') | float(16.0) %}
+          {% set away_temp = states('input_number.heating_bedroom_away_temp') | float(15.5) %}
+          {% set rescue_temp = states('input_number.heating_bedroom_rescue_temp') | float(17.2) %}
+
+          {% if summer_mode and not cool_night_rescue %}
+            {{ away_temp }}
+          {% elif cool_night_rescue %}
+            {{ rescue_temp }}
+          {% elif someone_home and schedule_on %}
+            {{ comfort_temp }}
+          {% elif someone_home %}
+            {{ eco_temp }}
+          {% else %}
+            {{ away_temp }}
+          {% endif %}
+
+timer:
+  hot_water_boost:
+    name: Hot Water Boost
+    duration: "01:00:00"
+
+script:
+  hot_water_boost_1h:
+    alias: Hot Water Boost 1h
+    mode: restart
+    sequence:
+      - if:
+          - condition: state
+            entity_id: timer.hot_water_boost
+            state: idle
+        then:
+          - action: input_number.set_value
+            target:
+              entity_id: input_number.hot_water_boost_restore_temp
+            data:
+              value: >-
+                {{
+                  state_attr('water_heater.vitrocrossal_300_cu3a_domestic_hot_water', 'temperature')
+                  | float(10)
+                }}
+
+      - action: water_heater.set_temperature
+        target:
+          entity_id: water_heater.vitrocrossal_300_cu3a_domestic_hot_water
+        data:
+          temperature: 55
+
+      - action: timer.start
+        target:
+          entity_id: timer.hot_water_boost
+        data:
+          duration: "01:00:00"
+
+      - action: notify.mobile_app_iphone_de_loic
+        data:
+          title: "🚿 Boost ECS"
+          message: >-
+            Boost eau chaude lancé pour 1h.
+            Température forcée à 55°C.
+            Retour prévu à
+            {{ states('input_number.hot_water_boost_restore_temp') | int }}°C.
+
+automation:
+  - alias: Heating Zone Bedroom Sync
+    id: heating_zone_bedroom_sync
+    triggers:
+      - trigger: state
+        entity_id:
+          - sensor.heating_bedroom_target_temp
+          - climate.thermostat1
+      - trigger: homeassistant
+        event: start
+      - trigger: time_pattern
+        minutes: "/15"
+
+    conditions:
+      - condition: template
+        value_template: >
+          {{
+            states('climate.thermostat1') not in ['unknown', 'unavailable']
+            and states('sensor.heating_bedroom_target_temp') not in ['unknown', 'unavailable']
+          }}
+
+    actions:
+      - variables:
+          target_temp: "{{ states('sensor.heating_bedroom_target_temp') | float(16) }}"
+          current_trv_hvac_mode: "{{ states('climate.thermostat1') }}"
+          current_trv_target: "{{ state_attr('climate.thermostat1', 'temperature') | float(0) }}"
+
+      - if:
+          - condition: template
+            value_template: "{{ current_trv_hvac_mode != 'heat' }}"
+        then:
+          - action: climate.set_hvac_mode
+            target:
+              entity_id: climate.thermostat1
+            data:
+              hvac_mode: heat
+
+      - if:
+          - condition: template
+            value_template: "{{ (current_trv_target - target_temp) | abs > 0.2 }}"
+        then:
+          - action: climate.set_temperature
+            target:
+              entity_id: climate.thermostat1
+            data:
+              temperature: "{{ target_temp }}"
+
+  - alias: Heating Boiler Manager
+    id: heating_boiler_manager
+    triggers:
+      - trigger: state
+        entity_id:
+          - binary_sensor.heating_house_needs_heat
+          - binary_sensor.heating_summer_mode_auto
+          - binary_sensor.heating_cool_night_rescue
+      - trigger: homeassistant
+        event: start
+      - trigger: time_pattern
+        minutes: "/15"
+
+    conditions:
+      - condition: template
+        value_template: >
+          {{ states('climate.vitrocrossal_300_cu3a_heating') not in ['unknown', 'unavailable'] }}
+
+    actions:
+      - variables:
+          summer_mode: "{{ is_state('binary_sensor.heating_summer_mode_auto', 'on') }}"
+          cool_night_rescue: "{{ is_state('binary_sensor.heating_cool_night_rescue', 'on') }}"
+          house_needs_heat: "{{ is_state('binary_sensor.heating_house_needs_heat', 'on') }}"
+          current_boiler_mode: >-
+            {{ state_attr('climate.vitrocrossal_300_cu3a_heating', 'active_vicare_mode') }}
+          vicare_modes: >-
+            {{ state_attr('climate.vitrocrossal_300_cu3a_heating', 'vicare_modes') or [] }}
+          active_zones: >
+            {% set ns = namespace(zones=[]) %}
+            {% if is_state('binary_sensor.heating_bedroom_needs_heat', 'on') %}
+              {% set ns.zones = ns.zones + ['Bedroom'] %}
+            {% endif %}
+            {% if is_state('binary_sensor.heating_living_room_needs_heat', 'on') %}
+              {% set ns.zones = ns.zones + ['Living room'] %}
+            {% endif %}
+            {% if is_state('binary_sensor.heating_office_needs_heat', 'on') %}
+              {% set ns.zones = ns.zones + ['Office'] %}
+            {% endif %}
+            {{ ns.zones | join(', ') if ns.zones else 'none' }}
+
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ summer_mode and not cool_night_rescue }}"
+            sequence:
+              - if:
+                  - condition: template
+                    value_template: "{{ current_boiler_mode != 'dhw' and 'dhw' in vicare_modes }}"
+                then:
+                  - action: vicare.set_vicare_mode
+                    target:
+                      entity_id: climate.vitrocrossal_300_cu3a_heating
+                    data:
+                      vicare_mode: dhw
+
+                  - action: notify.mobile_app_iphone_de_loic
+                    data:
+                      title: "☀️ Chauffage Été"
+                      message: "Passage en mode DHW uniquement."
+
+          - conditions:
+              - condition: template
+                value_template: "{{ house_needs_heat }}"
+            sequence:
+              - if:
+                  - condition: template
+                    value_template: "{{ current_boiler_mode != 'forcedNormal' }}"
+                then:
+                  - action: vicare.set_vicare_mode
+                    target:
+                      entity_id: climate.vitrocrossal_300_cu3a_heating
+                    data:
+                      vicare_mode: forcedNormal
+
+                  - action: notify.mobile_app_iphone_de_loic
+                    data:
+                      title: "🔥 Chauffage Actif"
+                      message: "Demande de chauffe depuis: {{ active_zones }}."
+
+        default:
+          - if:
+              - condition: template
+                value_template: "{{ current_boiler_mode != 'dhwAndHeating' }}"
+            then:
+              - action: vicare.set_vicare_mode
+                target:
+                  entity_id: climate.vitrocrossal_300_cu3a_heating
+                data:
+                  vicare_mode: dhwAndHeating
+
+              - action: notify.mobile_app_iphone_de_loic
+                data:
+                  title: "♨️ Chauffage Auto"
+                  message: "Retour au mode DHW + Heating pour conserver le planning ECS."
+
+    mode: single
+  - alias: Hot Water Boost End
+    id: hot_water_boost_end
+    triggers:
+      - trigger: event
+        event_type: timer.finished
+        event_data:
+          entity_id: timer.hot_water_boost
+
+      - trigger: event
+        event_type: timer.cancelled
+        event_data:
+          entity_id: timer.hot_water_boost
+
+    actions:
+      - variables:
+          restore_temp: "{{ states('input_number.hot_water_boost_restore_temp') | float(10) }}"
+
+      - action: water_heater.set_temperature
+        target:
+          entity_id: water_heater.vitrocrossal_300_cu3a_domestic_hot_water
+        data:
+          temperature: "{{ restore_temp }}"
+
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ trigger.event.event_type == 'timer.finished' }}"
+            sequence:
+              - action: notify.mobile_app_iphone_de_loic
+                data:
+                  title: "♨️ Boost ECS terminé"
+                  message: "Retour de la cible ECS à {{ restore_temp }}°C."
+
+          - conditions:
+              - condition: template
+                value_template: "{{ trigger.event.event_type == 'timer.cancelled' }}"
+            sequence:
+              - action: notify.mobile_app_iphone_de_loic
+                data:
+                  title: "🛑 Boost ECS annulé"
+                  message: "Boost stoppé manuellement. Retour de la cible ECS à {{ restore_temp }}°C."
+
+    mode: single

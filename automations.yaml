@@ -199,10 +199,10 @@
   alias: 'Buanderie lumière '
   description: ''
   triggers:
-  - domain: mqtt
+  - type: changed_states
     device_id: e8ff7021a89f66fd5dc75a60f3856306
-    type: action
-    subtype: single_l1
+    entity_id: 51093b03327b6fbb252dac0df7f2efd6
+    domain: switch
     trigger: device
   conditions: []
   actions:
@@ -213,3 +213,116 @@
     target:
       entity_id: light.spot_buanderie
   mode: single
+- id: '1758297527932'
+  alias: turn light bureau
+  description: ''
+  triggers:
+  - domain: mqtt
+    device_id: c7f588c8555dd6a11f01ad592f8c915e
+    type: action
+    subtype: on_press_release
+    trigger: device
+  conditions: []
+  actions:
+  - action: light.toggle
+    metadata: {}
+    data: {}
+    target:
+      area_id: bureau
+  mode: single
+- id: '1766834021191'
+  alias: Gestion Chauffage ViCare
+  description: Vitrocrossal 300
+  triggers:
+  - trigger: state
+    entity_id: schedule.schedule_chauffage
+  - trigger: state
+    entity_id: zone.home
+  - trigger: time_pattern
+    minutes: /5
+  - trigger: homeassistant
+    event: start
+  conditions:
+  - condition: not
+    conditions:
+    - condition: state
+      entity_id: climate.vitrocrossal_300_cu3a_heating
+      state:
+      - unavailable
+      - unknown
+  actions:
+  - variables:
+      is_someone_home: '{{ states(''zone.home'') | int(0) > 0 }}'
+      is_schedule_on: '{{ is_state(''schedule.schedule_chauffage'', ''on'') }}'
+      should_heat: '{{ is_someone_home and is_schedule_on }}'
+      current_vicare_mode: '{{ state_attr(''climate.vitrocrossal_300_cu3a_heating'',
+        ''active_vicare_mode'') }}'
+  - choose:
+    - conditions:
+      - condition: template
+        value_template: '{{ should_heat }}'
+      sequence:
+      - if:
+        - condition: template
+          value_template: '{{ current_vicare_mode != ''forcedNormal'' }}'
+        then:
+        - action: vicare.set_vicare_mode
+          target:
+            entity_id: climate.vitrocrossal_300_cu3a_heating
+          data:
+            vicare_mode: forcedNormal
+        - action: notify.mobile_app_iphone_de_loic
+          data:
+            title: "\U0001F525 Chauffage Actif"
+            message: Passage en CONFORT (forcedNormal).
+    - conditions:
+      - condition: template
+        value_template: '{{ not should_heat }}'
+      sequence:
+      - if:
+        - condition: template
+          value_template: '{{ current_vicare_mode != ''forcedReduced'' }}'
+        then:
+        - action: vicare.set_vicare_mode
+          target:
+            entity_id: climate.vitrocrossal_300_cu3a_heating
+          data:
+            vicare_mode: forcedReduced
+        - action: notify.mobile_app_iphone_de_loic
+          data:
+            title: "\U0001F331 Chauffage Eco"
+            message: Passage en ÉCO (forcedReduced).
+  mode: restart
+- id: '1772149770336'
+  alias: New automation
+  description: ''
+  triggers:
+  - trigger: calendar
+    entity_id: calendar.loic_workouts
+    event: start
+    offset: 0:0:0
+  conditions: []
+  actions: []
+  mode: single
+- id: '1772925366301'
+  alias: Ikea_bilresa_scroll_wheel_gris_1
+  description: ''
+  use_blueprint:
+    path: jhol-byte/Ikea_bilresa_scroll_wheel.yaml
+    input:
+      remote: d9eafff2617d54ead4cc3f1240d3878e
+      scroll_wheel_target_ch1:
+      - light.lampe_salon
+      click_action_ch1:
+      - action: light.toggle
+        metadata: {}
+        target:
+          entity_id: light.lampe_salon
+        data: {}
+      scroll_wheel_mode_ext_ch1: instant
+      click_action_ch2:
+      - action: switch.toggle
+        metadata: {}
+        target:
+          entity_id: switch.lumiere_buffet_socket_1
+        data: {}
