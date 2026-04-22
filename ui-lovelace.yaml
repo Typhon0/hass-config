@@ -7,45 +7,37 @@ views:
     layout:
       #default
       margin: 0
-      grid-gap: var(--custom-layout-card-padding)
-      # grid-template-columns: repeat(4, 1fr) 0
-      # grid-template-rows: 0 repeat(2, fit-content(100%)) 0fr
-      grid-template-columns: repeat(5, 1fr) 0
-      grid-template-rows: 0 repeat(2, fit-content(100%)) 0fr
+      grid-gap: calc(var(--custom-layout-card-padding) * 0.92)
+      grid-template-columns: 1fr repeat(4, minmax(0, 1fr))
+      grid-template-rows: auto auto auto
       grid-template-areas: |
-        "sidebar  .           .       .       ."
-        "sidebar  salon  bureau  cuisine  chambre"
-        "sidebar  media     buanderie       maison       maison"
-        "sidebar  .       .  .   ."
-        "sidebar  footer      footer  footer  footer"
+        "sidebar salon bureau cuisine chambre"
+        "sidebar media buanderie maison maison"
+        "sidebar media footer footer footer"
       mediaquery:
         #phone
         "(max-width: 800px)":
-          grid-gap: calc(var(--custom-layout-card-padding) * 1.7)
+          grid-gap: calc(var(--custom-layout-card-padding) * 1.45)
           grid-template-columns: 0 repeat(2, 1fr) 0
-          grid-template-rows: 0 repeat(5, fit-content(100%)) 0fr
+          grid-template-rows: repeat(6, fit-content(100%))
           grid-template-areas: |
-            ".  .           .        ."
-            ".  sidebar     sidebar  ."
-            ".  salon  cuisine   ."
-            ".  bureau      buanderie   ."
-            ".  chambre     .   ."
-            ".  media       maison    maison"
-            ".  footer      footer   ."
-            ".  .           .        ."
+            ". sidebar sidebar ."
+            ". salon cuisine ."
+            ". bureau chambre ."
+            ". media media ."
+            ". buanderie maison ."
+            ". footer footer ."
         #portrait
         "(max-width: 1200px)":
-          grid-gap: var(--custom-layout-card-padding)
-          grid-template-columns: repeat(3, 1fr) 0
-          grid-template-rows: 0 repeat(3, fit-content(100%)) 0fr
+          grid-gap: calc(var(--custom-layout-card-padding) * 0.9)
+          grid-template-columns: 0.95fr repeat(2, minmax(0, 1fr))
+          grid-template-rows: auto auto auto auto auto
           grid-template-areas: |
-            "sidebar  .           .       ."
-            "sidebar  salon  cuisine  ."
-            "sidebar  chambre     .       ."
-            "sidebar  bureau      buanderie  ."
-            "sidebar  media       maison   maison"
-            "sidebar  footer      footer  ."
-            "sidebar  .           .       ."
+            "sidebar salon cuisine"
+            "sidebar bureau chambre"
+            "sidebar media maison"
+            "sidebar buanderie maison"
+            "sidebar footer footer"
     cards:
       #extra_styles fix, do not remove
       #also warn if theme is not set
@@ -91,8 +83,8 @@ views:
             entity: weather.maison
             theme: tablet
             secondary_info_attribute: humidity
-            # show_current: true
-            show_forecast: true
+            show_current: true
+            show_forecast: false
 
           - type: conditional
             conditions:
@@ -138,24 +130,14 @@ views:
               - icon_shade
               - loader
           - type: custom:button-card
-            entity: climate.smart_thermostat_salon
-            name:
+            entity: sensor.thermo_2_temperature
+            name: "Température"
             tap_action:
               action: more-info
             template:
               - base
               - circle
               - icon_climate
-            variables:
-              circle_input: >
-                [[[
-                  if (entity) {
-                    return entity.state === 'cool' ?
-                      entity.attributes.temperature :
-                      entity.attributes.current_temperature;
-                  }
-                ]]]
-              circle_input_unit: "°C"
 
           - type: custom:button-card
             entity: media_player.sejour
@@ -297,7 +279,7 @@ views:
 
           - type: custom:button-card
             entity: sensor.thermo_1_temperature
-            name:
+            name: "Température"
             tap_action:
               action: more-info
             template:
@@ -361,7 +343,7 @@ views:
       # #################################################
 
       - type: grid
-        title: Media
+        title: Média
         view_layout:
           grid-area: media
         columns: 1
@@ -457,14 +439,14 @@ views:
                 cards:
                   - type: custom:button-card
                     entity: media_player.samsungtv_qn90a
-                    name: Vardagsrum
+                    name: Salon
                     template:
                       - media
                       - icon_apple_tv
 
                   - type: custom:button-card
                     entity: media_player.cuisine
-                    name: Sovrum
+                    name: Chambre
                     template:
                       - media
                       - icon_apple_tv
@@ -660,4 +642,83 @@ views:
             template:
               - base
               - icon_home
+
+      #################################################
+      #                                               #
+      #                    Footer                     #
+      #                                               #
+      #################################################
+
+      - type: grid
+        view_layout:
+          grid-area: footer
+        columns: 5
+        square: false
+        cards:
+          - type: custom:button-card
+            icon: mdi:home-import-outline
+            name: Retour
+            template: icon_name
+            styles:
+              card:
+                - border-radius: 999px
+                - padding: 0.88em 1.1em
+                - background: rgba(255,255,255,0.08)
+            tap_action:
+              action: call-service
+              service: script.turn_on
+              target:
+                entity_id: script.home_arrive
+
+          - type: custom:button-card
+            icon: mdi:home-export-outline
+            name: Absence
+            template: icon_name
+            styles:
+              card:
+                - border-radius: 999px
+                - padding: 0.88em 1.1em
+                - background: rgba(255,255,255,0.08)
+            tap_action:
+              action: call-service
+              service: script.turn_on
+              target:
+                entity_id: script.home_leave
+
+          - type: custom:button-card
+            icon: mdi:water-boiler
+            name: Boost ECS
+            template: icon_name
+            styles:
+              card:
+                - border-radius: 999px
+                - padding: 0.88em 1.1em
+                - background: rgba(255,255,255,0.08)
+            tap_action:
+              action: call-service
+              service: script.hot_water_boost_1h
+
+          - type: custom:button-card
+            icon: mdi:ev-station
+            name: Chargeur
+            template: icon_name
+            styles:
+              card:
+                - border-radius: 999px
+                - padding: 0.88em 1.1em
+                - background: rgba(255,255,255,0.08)
+            tap_action: !include popup/wallbox_charger.yaml
+
+          - type: custom:button-card
+            entity: switch.galaxy_tab_a_screensaver
+            icon: mdi:tablet-dashboard
+            name: Tablette
+            template: icon_name
+            styles:
+              card:
+                - border-radius: 999px
+                - padding: 0.88em 1.1em
+                - background: rgba(255,255,255,0.08)
+            tap_action:
+              action: toggle
 

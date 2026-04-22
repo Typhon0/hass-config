@@ -6,7 +6,7 @@ tablet:
   ha-card-box-shadow: none
   ha-card-background: none
 
-  grid-card-gap: 5%
+  grid-card-gap: 4.2%
   masonry-view-card-margin: 0px
   state-icon-color: "#9da0a2"
   state-icon-active-color: "#3182b7"
@@ -92,14 +92,14 @@ tablet:
   mdc-typography-font-family: var(--primary-font-family)
 
   #custom variables
-  ha-card-background-color: rgba(34,38,39,0.9)
-  ha-card-header-background-color: rgba(48,52,52,0.8)
-  custom-layout-card-padding: 3.3vw
+  ha-card-background-color: rgba(30,34,35,0.78)
+  ha-card-header-background-color: rgba(255,255,255,0.05)
+  custom-layout-card-padding: 2.05vw
 
   sidebar-time-font-size: 5.2vw
   sidebar-time-line-height: 4.3vw
-  sidebar-font-size: 1.42vw
-  sidebar-line-height: 2vw
+  sidebar-font-size: 1.36vw
+  sidebar-line-height: 1.92vw
   bar-card-color: "#303435"
 
   #button_card_templates
@@ -107,7 +107,7 @@ tablet:
   z-axis-adjustment: 0.05vw #tilt compensation
   button-card-font-weight: 500
   button-card-letter-spacing: -0.02vw
-  button-card-border-radius: 10%
+  button-card-border-radius: 1.22vw
 
   footer-card-font-size: 1.22vw
   footer-card-icon-size: 1.5vw
@@ -123,14 +123,14 @@ tablet:
   button-card-light-color-temp: hsl(204, 58%, 38%)
 
   #browser_mod.popup
-  dialog-backdrop-filter: blur(2em) brightness(0.75)
-  popup-background-color: rgba(34,38,39,0.9)
+  dialog-backdrop-filter: blur(2.6em) brightness(0.72)
+  popup-background-color: rgba(30,34,35,0.92)
   popup-border-width: 1px
-  popup-border-radius: 1em
-  popup-padding-x: 0px
-  popup-padding-y: 0px
+  popup-border-radius: 1.35em
+  popup-padding-x: 0.15em
+  popup-padding-y: 0.15em
   popup-min-width: 440px
-  tablet-popup-header-color: rgba(200, 218, 222, 0.05)
+  tablet-popup-header-color: rgba(255, 255, 255, 0.04)
   tablet-popup-content-padding: 1.1em 2.2em 1.6em 1.5em
   tablet-popup-button-padding: 0.1em 2em 1.8em 2em
   tablet-popup-border-style: 1.5px solid rgba(0,0,0,0.2)
@@ -147,9 +147,10 @@ tablet:
 
   card-mod-root: |
     #view {
-      # background: url('/local/background.png');
-      # background-size: cover;
-      background: #000000FF  /* fallback for old browsers */
+      background:
+        radial-gradient(circle at top left, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.0) 28%),
+        radial-gradient(circle at bottom right, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.0) 24%),
+        linear-gradient(180deg, #0b0c0d 0%, #000000 100%);
     }
 
   card-mod-view-yaml: |
@@ -168,17 +169,17 @@ tablet:
       hui-grid-card:
         .: |
           hui-grid-card {
-            padding-bottom: 1vw;
+            padding-bottom: 0.55vw;
           }
         $: |
           /* default */
           h1 {
-            font-size: 2.5vw !important;
-            line-height: 0 !important;
+            font-size: 2.28vw !important;
+            line-height: 1.05 !important;
             font-weight: 600 !important;
-            color: rgba(255, 255, 255, 0.8) !important;
-            padding: 0.2vw 0 2vw 0 !important;
-            letter-spacing: normal !important;
+            color: rgba(255, 255, 255, 0.86) !important;
+            padding: 0.2vw 0 0.9vw 0 !important;
+            letter-spacing: -0.02em !important;
             width: 100%;
           }
           /* portrait */
@@ -226,9 +227,9 @@ tablet:
 
     grid-layout$hui-vertical-stack-card$: |
       #root {
-        background-color: rgba(0, 0, 0, 0.06);
+        background: linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.0) 100%);
         border-radius: 0;
-        border-right: 0.1vw solid rgba(58, 69, 73, 0.2);
+        border-right: 0.1vw solid rgba(255,255,255,0.08);
         min-height: 100vh;
       }
       /* phone */
