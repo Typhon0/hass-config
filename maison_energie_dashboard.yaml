@@ -17,8 +17,8 @@ views:
             square: false
             cards:
               - type: gauge
-                entity: sensor.gaz_energie_jour
-                name: Conso gaz aujourd’hui
+                entity: sensor.gaz_kwh_jour
+                name: Conso gaz aujourd'hui
                 min: 0
                 max: 80
                 needle: true
@@ -31,12 +31,12 @@ views:
                 title: Résumé jour
                 show_header_toggle: false
                 entities:
-                  - entity: sensor.gaz_energie_jour
-                    name: kWh aujourd’hui
-                  - entity: sensor.gaz_volume_jour
-                    name: Volume aujourd’hui
+                  - entity: sensor.gaz_kwh_jour
+                    name: kWh aujourd'hui
+                  - entity: sensor.gaz_m3_jour
+                    name: Volume aujourd'hui
                   - entity: sensor.gaz_cout_jour
-                    name: Coût aujourd’hui
+                    name: Coût aujourd'hui
                   - entity: sensor.gaz_economie_jour_kwh
                     name: Économie vs référence
                   - entity: sensor.gaz_economie_jour_pourcentage
@@ -70,14 +70,14 @@ views:
                 title: kWh journalier
                 hours_to_show: 336
                 entities:
-                  - entity: sensor.gaz_energie_jour
+                  - entity: sensor.gaz_kwh_jour
                     name: kWh jour
 
               - type: history-graph
                 title: Volume journalier
                 hours_to_show: 336
                 entities:
-                  - entity: sensor.gaz_volume_jour
+                  - entity: sensor.gaz_m3_jour
                     name: m³ jour
 
               - type: history-graph
@@ -119,9 +119,9 @@ views:
                 title: Résumé mensuel
                 show_header_toggle: false
                 entities:
-                  - entity: sensor.gaz_energie_mois
+                  - entity: sensor.gaz_kwh_mois
                     name: kWh ce mois
-                  - entity: sensor.gaz_volume_mois
+                  - entity: sensor.gaz_m3_mois
                     name: Volume ce mois
                   - entity: sensor.gaz_cout_mois
                     name: Coût ce mois
@@ -161,14 +161,14 @@ views:
                 title: kWh mois
                 hours_to_show: 720
                 entities:
-                  - entity: sensor.gaz_energie_mois
+                  - entity: sensor.gaz_kwh_mois
                     name: kWh mois
 
               - type: history-graph
                 title: Volume mois
                 hours_to_show: 720
                 entities:
-                  - entity: sensor.gaz_volume_mois
+                  - entity: sensor.gaz_m3_mois
                     name: m³ mois
 
               - type: history-graph

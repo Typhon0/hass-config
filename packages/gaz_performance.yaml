@@ -76,7 +76,7 @@ template:
         icon: mdi:currency-eur
         unit_of_measurement: "€"
         state: >
-          {% set kwh = states('sensor.gaz_energie_jour') | float(0) %}
+          {% set kwh = states('sensor.gaz_kwh_jour') | float(0) %}
           {% set price = states('input_number.gaz_price_kwh') | float(0) %}
           {{ (kwh * price) | round(2) }}
 
@@ -85,7 +85,7 @@ template:
         icon: mdi:currency-eur
         unit_of_measurement: "€"
         state: >
-          {% set kwh = states('sensor.gaz_energie_mois') | float(0) %}
+          {% set kwh = states('sensor.gaz_kwh_mois') | float(0) %}
           {% set price = states('input_number.gaz_price_kwh') | float(0) %}
           {{ (kwh * price) | round(2) }}
 
@@ -94,7 +94,7 @@ template:
         icon: mdi:chart-line
         unit_of_measurement: "kWh"
         state: >
-          {% set month_kwh = states('sensor.gaz_energie_mois') | float(0) %}
+          {% set month_kwh = states('sensor.gaz_kwh_mois') | float(0) %}
           {% set day = now().day | float(1) %}
           {% set days_in_month = 30.44 %}
           {% if day > 0 %}
@@ -118,7 +118,7 @@ template:
         unit_of_measurement: "kWh"
         state: >
           {% set ref = states('input_number.gaz_reference_daily_kwh') | float(0) %}
-          {% set today = states('sensor.gaz_energie_jour') | float(0) %}
+          {% set today = states('sensor.gaz_kwh_jour') | float(0) %}
           {{ (ref - today) | round(1) }}
 
       - name: "Gaz économie jour pourcentage"
@@ -127,7 +127,7 @@ template:
         unit_of_measurement: "%"
         state: >
           {% set ref = states('input_number.gaz_reference_daily_kwh') | float(0) %}
-          {% set today = states('sensor.gaz_energie_jour') | float(0) %}
+          {% set today = states('sensor.gaz_kwh_jour') | float(0) %}
           {% if ref > 0 %}
             {{ (((ref - today) / ref) * 100) | round(1) }}
           {% else %}
@@ -140,7 +140,7 @@ template:
         unit_of_measurement: "kWh"
         state: >
           {% set target = states('input_number.gaz_target_daily_kwh') | float(0) %}
-          {% set today = states('sensor.gaz_energie_jour') | float(0) %}
+          {% set today = states('sensor.gaz_kwh_jour') | float(0) %}
           {{ (today - target) | round(1) }}
 
       - name: "Gaz statut économie"
