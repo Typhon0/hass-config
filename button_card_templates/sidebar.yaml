@@ -1,114 +1,157 @@
 sidebar:
-  show_state: false
+  template:
+    - settings
+  triggers_update:
+    - sensor.template_sidebar
+    - person.loic
+    - person.emma
   show_icon: false
+  show_name: false
+  show_state: false
   tap_action:
     action: none
-  name: >
-    [[[
-      if (entity) {
-          let attr = [];
-          for (let [k, value] of Object.entries(entity.attributes))
-              window.navigator.userAgent.match(/iPhone/i)
-                  ? k !== 'time' && k !== 'date' && value !== false && (attr += `<p>${k === 'greet' ? `<span class="iphone">${value}</span>` : `${value}`}</p>`)
-                  : value !== false && (attr += `<p>${value}</p>`);
-          return attr;
-      }
-    ]]]
-  extra_styles: >
-    #card {
-      padding: 0;
-      border-width: 0;
-      font-family: SF Pro Display, Roboto, system-ui;
-    }
-    #container {
-      display: flex !important;
-    }
-    #name {
-      padding: 1vw 2.5vw 0 var(--custom-layout-card-padding);
-      white-space: normal;
-      text-align: left;
-    }
-    .iphone {
-      font-size: 1.5em;
-      color: rgba(255, 255, 255, 0.8);
-    }
+  styles:
+    grid:
+      - grid-template-areas: '"main"'
+      - grid-template-columns: 1fr
+      - grid-template-rows: min-content
+    card:
+      - padding: 2.75vh 2.15vw 2.2vh 2.15vw
+      - border-radius: 30px
+      - background: rgba(12, 12, 14, 0.52)
+      - border: none
+      - backdrop-filter: blur(18px)
+      - -webkit-backdrop-filter: blur(18px)
+      - box-shadow: none
+      - overflow: hidden
+    custom_fields:
+      main:
+        - justify-self: stretch
+        - align-self: start
+  custom_fields:
+    main: >
+      [[[
+        if (!entity) return '';
+
+        const attrs = entity.attributes || {};
+        const hidden = ['friendly_name', 'icon', 'unit_of_measurement', 'device_class', 'state_class'];
+        let lines = [];
+        let tariff = '';
+
+        for (const [k, v] of Object.entries(attrs)) {
+          if (hidden.includes(k) || v === false || v === null || v === undefined || v === '') continue;
+          if (k === 'time' || k === 'date') continue;
+
+          const raw = `${v}`;
+
+          if (k === 'greet') {
+            lines.push(`<div class="greet">${raw}</div>`);
+            continue;
+          }
+
+          if (raw.includes('class="tarif') || k.toLowerCase().includes('tarif')) {
+            tariff = raw;
+            continue;
+          }
+
+          const cls = raw.startsWith('<b>') ? 'highlight' : 'meta';
+          lines.push(`<div class="${cls}">${raw}</div>`);
+        }
+
+        return `
+          <div class="wrap">
+            <div class="time">${attrs.time ?? '--:--'}</div>
+            <div class="date">${attrs.date ?? ''}</div>
+            <div class="body">${lines.join('')}</div>
+            <div class="chips">${tariff || ''}</div>
+          </div>
+        `;
+      ]]]
+  extra_styles: |
     .time {
-      font-size: var(--sidebar-time-font-size);
+      font-size: 5.25vw;
+      line-height: 0.95;
+      letter-spacing: -0.06em;
       font-weight: 300;
-      line-height: var(--sidebar-time-line-height);
-      letter-spacing: 0.11vw;
-      margin-left: -0.3vw;
-      color: rgba(255, 255, 255, 0.8);
+      color: rgba(255,255,255,0.94);
+      margin: 0 0 1.3vh 0;
     }
-    @supports not (-moz-appearance:none) {
-      .time-colon {
-        position: relative;
-        top: -.11em;
-      }
-    }
-    .commute {
-      line-height: var(--sidebar-time-line-height);
-      font-size: 1vw;
-      letter-spacing: 0.07vw;
-    }
-    .tarif {
-      font-size: 0.8vw;
+
+    .date {
+      font-size: 1.55vw;
+      line-height: 1.16;
       font-weight: 600;
-      padding: 0.2vw 0.5vw;
-      border-radius: 0.3vw;
-      margin-left: 0.5vw;
+      color: rgba(214,218,224,0.76);
+      margin: 0 0 2.8vh 0;
+      white-space: pre-line;
     }
-    .tarif.hc {
-      color: #00b4db;
-      background: rgba(0, 180, 219, 0.15);
+
+    .body {
+      display: grid;
+      gap: 1.3vh;
     }
-    .tarif.hp {
-      color: #ff9800;
-      background: rgba(255, 152, 0, 0.15);
-    }
-    p {
-      font-size: var(--sidebar-font-size);
-      line-height: var(--sidebar-line-height);
-      font-weight: 200;
-      letter-spacing: 0.07vw;
-      color: #6a7377;
-    }
-    b {
+
+    .greet {
+      font-size: 1.52vw;
+      line-height: 1.16;
       font-weight: 700;
+      color: rgba(255,255,255,0.94);
+      margin-top: 0.1vh;
+      margin-bottom: 0.7vh;
     }
-    p > b {
-      color: rgba(255, 255, 255, 0.8);
+
+    .highlight {
+      font-size: 1.4vw;
+      line-height: 1.2;
+      font-weight: 650;
+      color: rgba(242,244,247,0.9);
     }
-    /* portrait */
-    @media screen and (max-width: 1200px) {
-      .time {
-        font-size: calc(var(--sidebar-time-font-size) * 1.4 );
-        line-height: calc(var(--sidebar-time-line-height) * 1.4 );
-      }
-      p {
-        font-size: calc(var(--sidebar-font-size) * 1.2 );
-        line-height: calc(var(--sidebar-line-height) * 1.2 );
-      }
-      .tarif {
-        font-size: 1vw;
-        padding: 0.3vw 0.6vw;
-      }
+
+    .meta {
+      font-size: 1.12vw;
+      line-height: 1.36;
+      font-weight: 430;
+      color: rgba(171,177,186,0.82);
+      white-space: pre-line;
     }
-    /* phone  */
-    @media screen and (max-width: 800px) {
-      .time {
-        font-size: calc(var(--sidebar-time-font-size) * 2.6 );
-      }
-      p {
-        font-size: calc(var(--sidebar-font-size) * 2.6 );
-        line-height: calc(var(--sidebar-line-height) * 2.6 );
-        letter-spacing: 0.16vw;
-      }
-      #name {
-        padding: 0 0 0 1vw;
-      }
-      .tarif {
-        font-size: 2vw;
-        padding: 0.4vw 0.8vw;
-      }
+
+    .chips {
+      display: flex;
+      gap: 0.65vw;
+      flex-wrap: wrap;
+      margin-top: 1.45vh;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.42vw;
+      padding: 0.34vw 0.78vw;
+      border-radius: 999px;
+      font-size: 0.96vw;
+      line-height: 1;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .chip.ghost {
+      background: rgba(255,255,255,0.08);
+      color: rgba(236,240,246,0.9);
+    }
+
+    .dot {
+      width: 0.58vw;
+      height: 0.58vw;
+      border-radius: 50%;
+      display: inline-block;
+      background: rgba(255,255,255,0.28);
+    }
+
+    .dot.on {
+      background: rgba(57,217,138,0.95);
+      box-shadow: 0 0 0 0.12vw rgba(57,217,138,0.18);
+    }
+
+    .dot.off {
+      background: rgba(255,255,255,0.28);
     }

@@ -1,0 +1,173 @@
+action: fire-dom-event
+browser_mod:
+  service: browser_mod.popup
+  data:
+    title: Maison
+    size: wide
+    content:
+      type: vertical-stack
+      cards:
+        - type: markdown
+          content: |
+            # Maison
+            Présence, eau chaude, charge et raccourcis
+          card_mod:
+            style: |
+              ha-card {
+                background: transparent;
+                box-shadow: none;
+                border: none;
+                padding: 10px 8px 2px;
+                margin: 0 0 6px 0;
+              }
+              ha-markdown {
+                color: rgba(255,255,255,0.96);
+              }
+              h1 {
+                margin: 0 0 4px 0;
+                font-size: 2rem;
+                line-height: 1.05;
+                font-weight: 700;
+              }
+              p {
+                margin: 0;
+                color: rgba(255,255,255,0.62);
+                font-size: 0.98rem;
+              }
+        - type: grid
+          columns: 4
+          square: false
+          card_mod:
+            style: |
+              #root {
+                gap: 18px !important;
+                padding: 4px 0 2px 0 !important;
+              }
+              ha-card {
+                background: transparent !important;
+                box-shadow: none !important;
+                border: none !important;
+              }
+          cards:
+            - type: custom:button-card
+              entity: person.loic
+              name: Loïc
+              triggers_update:
+                - sensor.loic_last_changed
+              variables:
+                retain: sensor.loic_last_changed
+              template: person
+              tap_action:
+                action: more-info
+            - type: custom:button-card
+              entity: person.emma
+              name: Emma
+              triggers_update:
+                - sensor.emma_last_changed
+              variables:
+                retain: sensor.emma_last_changed
+              template: person
+              tap_action:
+                action: more-info
+            - type: custom:button-card
+              entity: sensor.wallbox_pulsar_max_sn_1331158_status_description
+              name: Chargeur
+              template:
+                - wallbox_charger
+                - circle
+                - icon_wallbox
+                - loader
+              tap_action:
+                action: more-info
+              hold_action:
+                action: call-service
+                service: switch.toggle
+                service_data:
+                  entity_id: switch.wallbox_pulsar_max_sn_1331158_pause_resume
+                haptic: light
+              variables:
+                circle_input: >
+                  [[[ 
+                    const powerState = states['sensor.wallbox_pulsar_max_sn_1331158_charging_power'].state;
+                    const power = parseFloat(powerState);
+                    if (isNaN(power) || power <= 0) return '';
+                    return power.toFixed(2);
+                  ]]]
+                circle_input_unit: "kW"
+            - type: custom:button-card
+              entity: timer.hot_water_boost
+              name: Boost ECS
+              template:
+                - boost_timer
+              tap_action:
+                action: call-service
+                service: script.hot_water_boost_1h
+              hold_action:
+                action: call-service
+                service: timer.cancel
+                target:
+                  entity_id: timer.hot_water_boost
+              show_state: true
+              triggers_update: all
+              update_timer: 1s
+              state_display: >
+                [[[ 
+                  if (!entity) return '';
+                  if (entity.state !== 'active') return '1h';
+                  const finishesAt = entity.attributes.finishes_at;
+                  if (!finishesAt) return entity.attributes.remaining || 'En cours';
+                  const diff = Math.max(0, Math.floor((new Date(finishesAt) - new Date()) / 1000));
+                  const h = String(Math.floor(diff / 3600)).padStart(2, '0');
+                  const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+                  const s = String(diff % 60).padStart(2, '0');
+                  return `${h}:${m}:${s}`;
+                ]]]
+            - type: custom:button-card
+              entity: script.home_arrive
+              name: Maison
+              hold_action:
+                action: none
+              template:
+                - base
+                - icon_home
+            - type: custom:button-card
+              icon: mdi:home-export-outline
+              name: Absence
+              template: icon_name
+              styles:
+                card:
+                  - border-radius: 999px
+                  - padding: 0.88em 1.1em
+                  - background: rgba(255,255,255,0.08)
+              tap_action:
+                action: call-service
+                service: script.turn_on
+                target:
+                  entity_id: script.home_leave
+        - type: entities
+          title: Détails maison
+          show_header_toggle: false
+          entities:
+            - entity: person.loic
+              name: Loïc
+            - entity: person.emma
+              name: Emma
+            - entity: sensor.wallbox_pulsar_max_sn_1331158_status_description
+              name: Chargeur
+            - entity: timer.hot_water_boost
+              name: Boost ECS
+          card_mod:
+            style: |
+              ha-card {
+                margin-top: 22px;
+                border-radius: 26px;
+                background: rgba(255,255,255,0.04);
+                border: 1px solid rgba(255,255,255,0.06);
+                box-shadow: none;
+                overflow: hidden;
+              }
+              .card-header {
+                font-size: 1rem;
+                font-weight: 600;
+                color: rgba(255,255,255,0.9);
+              }

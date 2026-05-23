@@ -119,7 +119,7 @@ automation:
           - schedule.schedule_chauffage_chambre
           - schedule.schedule_chauffage_salon
           - sensor.thermo_1_temperature
-          - sensor.thermo_2
+          - sensor.thermo_2_temperature
           - sensor.vitrocrossal_300_cu3a_outside_temperature
           - climate.thermostat1
       - platform: time_pattern
@@ -142,9 +142,9 @@ automation:
           someone_home: "{{ states('zone.home') | int(0) > 0 }}"
           outside_temp: "{{ states('sensor.vitrocrossal_300_cu3a_outside_temperature') | float(0) }}"
           bedroom_temp_ok: "{{ states('sensor.thermo_1_temperature') not in ['unknown', 'unavailable', 'none', ''] }}"
-          salon_temp_ok: "{{ states('sensor.thermo_2') not in ['unknown', 'unavailable', 'none', ''] }}"
+          salon_temp_ok: "{{ states('sensor.thermo_2_temperature') not in ['unknown', 'unavailable', 'none', ''] }}"
           bedroom_temp: "{{ states('sensor.thermo_1_temperature') | float(0) }}"
-          salon_temp: "{{ states('sensor.thermo_2') | float(0) }}"
+          salon_temp: "{{ states('sensor.thermo_2_temperature') | float(0) }}"
           bedroom_schedule_on: "{{ is_state('schedule.schedule_chauffage_chambre', 'on') }}"
           salon_schedule_on: "{{ is_state('schedule.schedule_chauffage_salon', 'on') }}"
           vicare_mode_current: "{{ state_attr('climate.vitrocrossal_300_cu3a_heating', 'active_vicare_mode') }}"
@@ -317,3 +317,46 @@ automation:
                 data:
                   title: "🛑 Boost ECS annulé"
                   message: "Boost stoppé manuellement. Retour de la cible ECS à {{ restore_temp }}°C."
+
+template:
+  - sensor:
+      - name: Chauffage Statut
+        unique_id: chauffage_statut
+        icon: >-
+          {% set home_count = states('zone.home') | int(0) %}
+          {% set mode = state_attr('climate.vitrocrossal_300_cu3a_heating', 'active_vicare_mode') %}
+
+          {% if home_count == 0 %}
+            mdi:home-export-outline
+          {% elif mode == 'forcedNormal' %}
+            mdi:fire
+          {% elif mode == 'dhw' %}
+            mdi:water-boiler
+          {% elif mode == 'standby' %}
+            mdi:power-sleep
+          {% else %}
+            mdi:radiator
+          {% endif %}
+        state: >-
+          {% set home_count = states('zone.home') | int(0) %}
+          {% set mode = state_attr('climate.vitrocrossal_300_cu3a_heating', 'active_vicare_mode') %}
+
+          {% if home_count == 0 %}
+            Absence
+          {% elif mode == 'forcedNormal' %}
+            Chauffage actif
+          {% elif mode == 'dhw' %}
+            Eau chaude seule
+          {% elif mode == 'standby' %}
+            Veille
+          {% elif mode %}
+            {{ mode }}
+          {% else %}
+            Inconnu
+          {% endif %}
+        attributes:
+          personnes_maison: "{{ states('zone.home') | int(0) }}"
+          mode_vicare: "{{ state_attr('climate.vitrocrossal_300_cu3a_heating', 'active_vicare_mode') }}"
+          chambre_temp: "{{ states('sensor.thermo_1_temperature') }}"
+          salon_temp: "{{ states('sensor.thermo_2_temperature') }}"
+          temperature_exterieure: "{{ states('sensor.vitrocrossal_300_cu3a_outside_temperature') }}"

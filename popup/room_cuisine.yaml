@@ -1,0 +1,93 @@
+action: fire-dom-event
+browser_mod:
+  service: browser_mod.popup
+  data:
+    title: Cuisine
+    size: wide
+    content:
+      type: vertical-stack
+      cards:
+        - type: markdown
+          content: |
+            # Cuisine
+            Éclairage et température
+          card_mod:
+            style: |
+              ha-card {
+                background: transparent;
+                box-shadow: none;
+                border: none;
+                padding: 10px 8px 2px;
+                margin: 0 0 6px 0;
+              }
+              ha-markdown {
+                color: rgba(255,255,255,0.96);
+              }
+              h1 {
+                margin: 0 0 4px 0;
+                font-size: 2rem;
+                line-height: 1.05;
+                font-weight: 700;
+              }
+              p {
+                margin: 0;
+                color: rgba(255,255,255,0.62);
+                font-size: 0.98rem;
+              }
+        - type: grid
+          columns: 4
+          square: false
+          card_mod:
+            style: |
+              #root {
+                gap: 18px !important;
+                padding: 4px 0 2px 0 !important;
+              }
+              ha-card {
+                background: transparent !important;
+                box-shadow: none !important;
+                border: none !important;
+              }
+          cards:
+            - type: custom:button-card
+              entity: light.ampoule_lampadaire_salon
+              name: Lumière
+              template:
+                - light
+                - icon_hue
+              tap_action:
+                action: toggle
+              double_tap_action:
+                action: more-info
+            - type: custom:button-card
+              entity: sensor.thermo_cuisine_temperature
+              name: Température
+              template:
+                - base
+                - circle
+                - icon_climate
+              tap_action:
+                action: more-info
+        - type: entities
+          title: Détails cuisine
+          show_header_toggle: false
+          entities:
+            - entity: light.ampoule_lampadaire_salon
+              name: Lumière
+            - entity: sensor.thermo_cuisine_temperature
+              name: Température
+          card_mod:
+            style: |
+              ha-card {
+                margin-top: 22px;
+                border-radius: 26px;
+                background: rgba(255,255,255,0.04);
+                border: 1px solid rgba(255,255,255,0.06);
+                box-shadow: none;
+                overflow: hidden;
+              }
+              .card-header {
+                font-size: 1rem;
+                font-weight: 600;
+                color: rgba(255,255,255,0.9);
+              }

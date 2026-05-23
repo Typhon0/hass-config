@@ -1,0 +1,163 @@
+###############################################################################
+# GAZ PERFORMANCE / ECONOMIE CHAUFFAGE
+###############################################################################
+
+input_number:
+  gaz_price_kwh:
+    name: Prix gaz par kWh
+    min: 0
+    max: 1
+    step: 0.001
+    mode: box
+    unit_of_measurement: "€/kWh"
+    icon: mdi:currency-eur
+    initial: 0.11
+
+  gaz_reference_daily_kwh:
+    name: Référence gaz jour avant optimisation
+    min: 0
+    max: 200
+    step: 0.1
+    mode: box
+    unit_of_measurement: "kWh/j"
+    icon: mdi:fire
+    initial: 55
+
+  gaz_target_daily_kwh:
+    name: Objectif gaz jour
+    min: 0
+    max: 200
+    step: 0.1
+    mode: box
+    unit_of_measurement: "kWh/j"
+    icon: mdi:target
+    initial: 40
+
+###############################################################################
+# COMPTEURS JOUR / MOIS
+###############################################################################
+
+utility_meter:
+  gaz_kwh_jour:
+    source: sensor.gazpar_energy
+    name: Gaz kWh jour
+    unique_id: gaz_kwh_jour
+    cycle: daily
+    periodically_resetting: false
+
+  gaz_kwh_mois:
+    source: sensor.gazpar_energy
+    name: Gaz kWh mois
+    unique_id: gaz_kwh_mois
+    cycle: monthly
+    periodically_resetting: false
+
+  gaz_m3_jour:
+    source: sensor.gazpar_volume
+    name: Gaz m3 jour
+    unique_id: gaz_m3_jour
+    cycle: daily
+    periodically_resetting: false
+
+  gaz_m3_mois:
+    source: sensor.gazpar_volume
+    name: Gaz m3 mois
+    unique_id: gaz_m3_mois
+    cycle: monthly
+    periodically_resetting: false
+
+###############################################################################
+# CAPTEURS CALCULES
+###############################################################################
+template:
+  - sensor:
+      - name: "Gaz coût jour"
+        unique_id: gaz_cost_today
+        icon: mdi:currency-eur
+        unit_of_measurement: "€"
+        state: >
+          {% set kwh = states('sensor.gaz_energie_jour') | float(0) %}
+          {% set price = states('input_number.gaz_price_kwh') | float(0) %}
+          {{ (kwh * price) | round(2) }}
+
+      - name: "Gaz coût mois"
+        unique_id: gaz_cost_month
+        icon: mdi:currency-eur
+        unit_of_measurement: "€"
+        state: >
+          {% set kwh = states('sensor.gaz_energie_mois') | float(0) %}
+          {% set price = states('input_number.gaz_price_kwh') | float(0) %}
+          {{ (kwh * price) | round(2) }}
+
+      - name: "Gaz projection mois"
+        unique_id: gaz_month_projection_kwh
+        icon: mdi:chart-line
+        unit_of_measurement: "kWh"
+        state: >
+          {% set month_kwh = states('sensor.gaz_energie_mois') | float(0) %}
+          {% set day = now().day | float(1) %}
+          {% set days_in_month = 30.44 %}
+          {% if day > 0 %}
+            {{ ((month_kwh / day) * days_in_month) | round(1) }}
+          {% else %}
+            0
+          {% endif %}
+
+      - name: "Gaz projection coût mois"
+        unique_id: gaz_month_projection_cost
+        icon: mdi:currency-eur
+        unit_of_measurement: "€"
+        state: >
+          {% set projected_kwh = states('sensor.gaz_projection_mois') | float(0) %}
+          {% set price = states('input_number.gaz_price_kwh') | float(0) %}
+          {{ (projected_kwh * price) | round(2) }}
+
+      - name: "Gaz économie jour kWh"
+        unique_id: gaz_daily_saving_kwh
+        icon: mdi:leaf
+        unit_of_measurement: "kWh"
+        state: >
+          {% set ref = states('input_number.gaz_reference_daily_kwh') | float(0) %}
+          {% set today = states('sensor.gaz_energie_jour') | float(0) %}
+          {{ (ref - today) | round(1) }}
+
+      - name: "Gaz économie jour pourcentage"
+        unique_id: gaz_daily_saving_percent
+        icon: mdi:percent
+        unit_of_measurement: "%"
+        state: >
+          {% set ref = states('input_number.gaz_reference_daily_kwh') | float(0) %}
+          {% set today = states('sensor.gaz_energie_jour') | float(0) %}
+          {% if ref > 0 %}
+            {{ (((ref - today) / ref) * 100) | round(1) }}
+          {% else %}
+            0
+          {% endif %}
+
+      - name: "Gaz écart objectif jour"
+        unique_id: gaz_daily_target_delta
+        icon: mdi:target
+        unit_of_measurement: "kWh"
+        state: >
+          {% set target = states('input_number.gaz_target_daily_kwh') | float(0) %}
+          {% set today = states('sensor.gaz_energie_jour') | float(0) %}
+          {{ (today - target) | round(1) }}
+
+      - name: "Gaz statut économie"
+        unique_id: gaz_saving_status
+        icon: mdi:home-thermometer
+        state: >
+          {% set saving = states('sensor.gaz_economie_jour_pourcentage') | float(0) %}
+          {% set delta = states('sensor.gaz_ecart_objectif_jour') | float(0) %}
+
+          {% if saving >= 20 %}
+            Très bon
+          {% elif saving >= 10 %}
+            Bon
+          {% elif saving >= 0 %}
+            Léger gain
+          {% elif delta <= 5 %}
+            Correct
+          {% else %}
+            Trop haut
+          {% endif %}

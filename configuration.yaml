@@ -123,7 +123,12 @@ lovelace:
       title: Salon
       icon: mdi:tools
       show_in_sidebar: true
-
+    maison-energie:
+      mode: yaml
+      filename: maison_energie_dashboard.yaml
+      title: Énergie
+      icon: mdi:power
+      show_in_sidebar: true
 logger:
   default: info
   logs:

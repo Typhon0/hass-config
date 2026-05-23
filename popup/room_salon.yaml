@@ -1,0 +1,154 @@
+action: fire-dom-event
+browser_mod:
+  service: browser_mod.popup
+  data:
+    title: Salon
+    size: wide
+    card_mod:
+      style:
+        ha-dialog$: |
+          div.mdc-dialog {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            margin-top: 30px !important;
+          }
+
+          div.mdc-dialog__container {
+            align-items: center !important;
+            justify-content: center !important;
+          }
+
+          div.mdc-dialog__surface {
+            margin: 0 !important;
+            position: relative !important;
+            top: auto !important;
+            left: auto !important;
+            transform: none !important;
+            max-width: min(92vw, 1600px) !important;
+            width: min(92vw, 1600px) !important;
+            border-radius: 28px !important;
+          }
+
+          @media (max-height: 900px) {
+            div.mdc-dialog__surface {
+              max-height: 90vh !important;
+            }
+          }
+    content:
+      type: vertical-stack
+      cards:
+        - type: markdown
+          content: |
+            # Salon
+            Éclairage, buffet, température et TV
+          card_mod:
+            style: |
+              ha-card {
+                background: transparent;
+                box-shadow: none;
+                border: none;
+                padding: 10px 8px 2px;
+                margin: 0 0 6px 0;
+              }
+              ha-markdown {
+                color: rgba(255,255,255,0.96);
+              }
+              h1 {
+                margin: 0 0 4px 0;
+                font-size: 2rem;
+                line-height: 1.05;
+                font-weight: 700;
+              }
+              p {
+                margin: 0;
+                color: rgba(255,255,255,0.62);
+                font-size: 0.98rem;
+              }
+        - type: grid
+          columns: 4
+          square: false
+          card_mod:
+            style: |
+              #root {
+                gap: 18px !important;
+                padding: 0px 20px 20px 20px !important;
+                margin: 0 0 6px 0;              }
+              ha-card {
+                background: transparent !important;
+                box-shadow: none !important;
+                border: none !important;
+              }
+          cards:
+            - type: custom:button-card
+              entity: light.lampe_salon
+              name: Lampe
+              template:
+                - light
+                - icon_hue
+              tap_action:
+                action: toggle
+              double_tap_action:
+                action: more-info
+            - type: custom:button-card
+              entity: switch.lumiere_buffet_socket_1
+              name: Buffet
+              template:
+                - base
+                - icon_shade
+                - loader
+              tap_action:
+                action: toggle
+              double_tap_action:
+                action: more-info
+            - type: custom:button-card
+              entity: sensor.thermo_2_temperature
+              name: Température
+              template:
+                - base
+                - circle
+                - icon_climate
+              tap_action:
+                action: more-info
+            - type: custom:button-card
+              entity: media_player.sejour
+              name: TV
+              state_display: >
+                [[[ 
+                  if (variables.state === 'playing') return 'On';
+                  if (variables.state === true) return variables.translate_unknown;
+                ]]]
+              template:
+                - base
+                - icon_tv
+                - loader
+              tap_action:
+                action: more-info
+        - type: entities
+          title: Détails salon
+          show_header_toggle: false
+          entities:
+            - entity: light.lampe_salon
+              name: Lampe
+            - entity: switch.lumiere_buffet_socket_1
+              name: Buffet
+            - entity: sensor.thermo_2_temperature
+              name: Température
+            - entity: media_player.sejour
+              name: TV
+          card_mod:
+            style: |
+              ha-card {
+                margin-top: 22px;
+                margin:20px;
+                border-radius: 26px;
+                background: rgba(255,255,255,0.04);
+                border: 1px solid rgba(255,255,255,0.06);
+                box-shadow: none;
+                overflow: hidden;
+              }
+              .card-header {
+                font-size: 1rem;
+                font-weight: 600;
+                color: rgba(255,255,255,0.9);
+              }
