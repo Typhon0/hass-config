@@ -3,7 +3,6 @@ views:
   - title: Gaz
     path: gaz
     icon: mdi:fire
-    panel: true
     cards:
       ##########################################################################
       # LIGNE PRINCIPALE — KPIs en tête
