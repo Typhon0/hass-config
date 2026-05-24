@@ -1,202 +1,350 @@
-title: Gaz
+title: Énergie & Gaz
 views:
   - title: Gaz
     path: gaz
     icon: mdi:fire
     panel: true
     cards:
-      - type: vertical-stack
+      ##########################################################################
+      # LIGNE PRINCIPALE — KPIs en tête
+      ##########################################################################
+
+      - type: horizontal-stack
         cards:
-          #####################################################################
-          # LIGNE PRINCIPALE
-          #####################################################################
+          - type: statistic
+            entity: sensor.gaz_daily_avg_month
+            period:
+              calendar:
+                period: month
+            stat_type: mean
+            name: Moy. jour
 
-          - type: grid
-            title: Vue d’ensemble
-            columns: 3
-            square: false
-            cards:
-              - type: gauge
-                entity: sensor.gaz_kwh_jour
-                name: Conso gaz aujourd'hui
-                min: 0
-                max: 80
-                needle: true
-                severity:
-                  green: 0
-                  yellow: 40
-                  red: 55
+          - type: statistic
+            entity: sensor.gaz_cout_mois
+            period:
+              calendar:
+                period: month
+            stat_type: sum
+            name: Coût mois
 
-              - type: entities
-                title: Résumé jour
-                show_header_toggle: false
-                entities:
-                  - entity: sensor.gaz_kwh_jour
-                    name: kWh aujourd'hui
-                  - entity: sensor.gaz_m3_jour
-                    name: Volume aujourd'hui
-                  - entity: sensor.gaz_cout_jour
-                    name: Coût aujourd'hui
-                  - entity: sensor.gaz_economie_jour_kwh
-                    name: Économie vs référence
-                  - entity: sensor.gaz_economie_jour_pourcentage
-                    name: Économie %
-                  - entity: sensor.gaz_ecart_objectif_jour
-                    name: Écart objectif
-                  - entity: sensor.gaz_statut_economie
-                    name: Statut
+          - type: statistic
+            entity: sensor.gaz_monthly_cumulative_saving_eur
+            period:
+              calendar:
+                period: month
+            stat_type: sum
+            name: Économie mois
 
-              - type: entities
-                title: Réglages économie
-                show_header_toggle: false
-                entities:
-                  - entity: input_number.gaz_price_kwh
-                    name: Prix kWh gaz
-                  - entity: input_number.gaz_reference_daily_kwh
-                    name: Ancienne moyenne kWh/jour
-                  - entity: input_number.gaz_target_daily_kwh
-                    name: Objectif kWh/jour
+      ##########################################################################
+      # VUE D'ENSEMBLE — Gauges + Résumé + Réglages
+      ##########################################################################
 
-          #####################################################################
-          # JOURNALIER 14 JOURS
-          #####################################################################
+      - type: grid
+        title: Vue d'ensemble
+        columns: 3
+        square: false
+        cards:
+          - type: gauge
+            entity: sensor.gaz_kwh_jour
+            name: Conso gaz aujourd'hui
+            min: 0
+            max: 80
+            needle: true
+            severity:
+              green: 0
+              yellow: 40
+              red: 55
 
-          - type: grid
-            title: Journalier sur 14 jours
-            columns: 3
-            square: false
-            cards:
-              - type: history-graph
-                title: kWh journalier
-                hours_to_show: 336
-                entities:
-                  - entity: sensor.gaz_kwh_jour
-                    name: kWh jour
+          - type: entities
+            title: Résumé jour
+            show_header_toggle: false
+            entities:
+              - entity: sensor.gaz_kwh_jour
+                name: kWh aujourd'hui
+              - entity: sensor.gaz_m3_jour
+                name: Volume aujourd'hui
+              - entity: sensor.gaz_cout_jour
+                name: Coût aujourd'hui
+              - entity: sensor.gaz_dju_jour
+                name: DJU (froid ressenti)
+              - entity: sensor.gaz_intensite_energetique
+                name: Intensité kWh/DJU
+              - entity: sensor.gaz_statut_economie
+                name: Statut
 
-              - type: history-graph
-                title: Volume journalier
-                hours_to_show: 336
-                entities:
-                  - entity: sensor.gaz_m3_jour
-                    name: m³ jour
+          - type: entities
+            title: Réglages économie
+            show_header_toggle: false
+            state_color: true
+            entities:
+              - entity: input_number.gaz_price_kwh
+                name: Prix kWh gaz
+              - entity: input_number.gaz_reference_daily_kwh
+                name: Ancienne moyenne kWh/jour
+              - entity: input_number.gaz_target_daily_kwh
+                name: Objectif kWh/jour
+              - entity: input_number.dju_base_temperature
+                name: Température base DJU
 
-              - type: history-graph
-                title: Coût journalier
-                hours_to_show: 336
-                entities:
-                  - entity: sensor.gaz_cout_jour
-                    name: Coût jour
+      ##########################################################################
+      # MINI-GRAPHS JOUR — Trend rapide sur 48h
+      ##########################################################################
 
-          - type: grid
-            title: Performance journalière
-            columns: 2
-            square: false
-            cards:
-              - type: history-graph
-                title: Économie kWh sur 14 jours
-                hours_to_show: 336
-                entities:
-                  - entity: sensor.gaz_economie_jour_kwh
-                    name: Économie kWh
+      - type: grid
+        title: Tendance 48h
+        columns: 2
+        square: false
+        cards:
+          - type: custom:mini-graph-card
+            name: Conso 48h
+            icon: mdi:fire
+            entities:
+              - entity: sensor.gaz_kwh_jour
+                name: kWh/jour
+            hours_to_show: 48
+            points_per_hour: 1
+            show:
+              fill: true
+              state: true
+              name: true
+              legend: false
+              extrema: true
+            color_thresholds:
+              - value: 0
+                color: "#43a047"
+              - value: 40
+                color: "#fbc02d"
+              - value: 55
+                color: "#e53935"
 
-              - type: history-graph
-                title: Économie % sur 14 jours
-                hours_to_show: 336
-                entities:
-                  - entity: sensor.gaz_economie_jour_pourcentage
-                    name: Économie %
+          - type: custom:mini-graph-card
+            name: Économie % 48h
+            icon: mdi:leaf
+            entities:
+              - entity: sensor.gaz_economie_jour_pourcentage
+                name: Économie %
+            hours_to_show: 48
+            points_per_hour: 1
+            show:
+              fill: true
+              state: true
+              name: true
+              legend: false
+              extrema: true
+            color_thresholds:
+              - value: 20
+                color: "#43a047"
+              - value: 10
+                color: "#fbc02d"
+              - value: 0
+                color: "#e53935"
 
-          #####################################################################
-          # MENSUEL
-          #####################################################################
+      ##########################################################################
+      # JOURNALIER 14 JOURS — Historique détaillé
+      ##########################################################################
 
-          - type: grid
-            title: Mois en cours
-            columns: 3
-            square: false
-            cards:
-              - type: entities
-                title: Résumé mensuel
-                show_header_toggle: false
-                entities:
-                  - entity: sensor.gaz_kwh_mois
-                    name: kWh ce mois
-                  - entity: sensor.gaz_m3_mois
-                    name: Volume ce mois
-                  - entity: sensor.gaz_cout_mois
-                    name: Coût ce mois
-                  - entity: sensor.gaz_projection_mois
-                    name: Projection kWh mois
-                  - entity: sensor.gaz_projection_cout_mois
-                    name: Projection coût mois
+      - type: grid
+        title: Journalier sur 14 jours
+        columns: 3
+        square: false
+        cards:
+          - type: history-graph
+            title: kWh journalier
+            hours_to_show: 336
+            entities:
+              - entity: sensor.gaz_kwh_jour
+                name: kWh jour
 
-              - type: gauge
-                entity: sensor.gaz_projection_mois
-                name: Projection mensuelle kWh
-                min: 0
-                max: 1800
-                needle: true
-                severity:
-                  green: 0
-                  yellow: 1200
-                  red: 1700
+          - type: history-graph
+            title: Volume journalier
+            hours_to_show: 336
+            entities:
+              - entity: sensor.gaz_m3_jour
+                name: m³ jour
 
-              - type: gauge
-                entity: sensor.gaz_cout_mois
-                name: Coût gaz ce mois
-                min: 0
-                max: 200
-                needle: true
-                severity:
-                  green: 0
-                  yellow: 120
-                  red: 170
+          - type: history-graph
+            title: Coût journalier
+            hours_to_show: 336
+            entities:
+              - entity: sensor.gaz_cout_jour
+                name: Coût jour
 
-          - type: grid
-            title: Graphiques mensuels
-            columns: 3
-            square: false
-            cards:
-              - type: history-graph
-                title: kWh mois
-                hours_to_show: 720
-                entities:
-                  - entity: sensor.gaz_kwh_mois
-                    name: kWh mois
+      - type: grid
+        title: Performance journalière
+        columns: 2
+        square: false
+        cards:
+          - type: history-graph
+            title: Économie kWh sur 14 jours
+            hours_to_show: 336
+            entities:
+              - entity: sensor.gaz_economie_jour_kwh
+                name: Économie kWh
+              - entity: sensor.gaz_reference_daily_kwh
+                name: Référence
 
-              - type: history-graph
-                title: Volume mois
-                hours_to_show: 720
-                entities:
-                  - entity: sensor.gaz_m3_mois
-                    name: m³ mois
+          - type: history-graph
+            title: Économie % sur 14 jours
+            hours_to_show: 336
+            entities:
+              - entity: sensor.gaz_economie_jour_pourcentage
+                name: Économie %
 
-              - type: history-graph
-                title: Coût mois
-                hours_to_show: 720
-                entities:
-                  - entity: sensor.gaz_cout_mois
-                    name: Coût mois
+      - type: history-graph
+        title: DJU & Température extérieure (14 jours)
+        hours_to_show: 336
+        entities:
+          - entity: sensor.gaz_dju_jour
+            name: DJU
+          - entity: sensor.gazpar_temperature
+            name: Température ext.
 
-          #####################################################################
-          # PROJECTION
-          #####################################################################
+      ##########################################################################
+      # MENSUEL — Résumé mensuel + Gauges
+      ##########################################################################
 
-          - type: grid
-            title: Projection
-            columns: 2
-            square: false
-            cards:
-              - type: history-graph
-                title: Projection kWh mois
-                hours_to_show: 720
-                entities:
-                  - entity: sensor.gaz_projection_mois
-                    name: Projection kWh
+      - type: grid
+        title: Mois en cours
+        columns: 3
+        square: false
+        cards:
+          - type: entities
+            title: Résumé mensuel
+            show_header_toggle: false
+            entities:
+              - entity: sensor.gaz_kwh_mois
+                name: kWh ce mois
+              - entity: sensor.gaz_m3_mois
+                name: Volume ce mois
+              - entity: sensor.gaz_cout_mois
+                name: Coût ce mois
+              - entity: sensor.gaz_daily_avg_month
+                name: Moyenne jour
+              - entity: sensor.gaz_economie_cumulee_mois_kwh
+                name: Économie cumulée kWh
+              - entity: sensor.gaz_economie_cumulee_mois_eur
+                name: Économie cumulée €
 
-              - type: history-graph
-                title: Projection coût mois
-                hours_to_show: 720
-                entities:
-                  - entity: sensor.gaz_projection_cout_mois
-                    name: Projection coût
+          - type: gauge
+            entity: sensor.gaz_projection_mois
+            name: Projection mensuelle kWh
+            min: 0
+            max: 1800
+            needle: true
+            severity:
+              green: 0
+              yellow: 1200
+              red: 1700
+
+          - type: gauge
+            entity: sensor.gaz_cout_mois
+            name: Coût gaz ce mois
+            min: 0
+            max: 200
+            needle: true
+            severity:
+              green: 0
+              yellow: 120
+              red: 170
+
+      - type: grid
+        title: Graphiques mensuels (30 jours)
+        columns: 3
+        square: false
+        cards:
+          - type: history-graph
+            title: kWh mois
+            hours_to_show: 720
+            entities:
+              - entity: sensor.gaz_kwh_mois
+                name: kWh mois
+
+          - type: history-graph
+            title: Volume mois
+            hours_to_show: 720
+            entities:
+              - entity: sensor.gaz_m3_mois
+                name: m³ mois
+
+          - type: history-graph
+            title: Coût mois
+            hours_to_show: 720
+            entities:
+              - entity: sensor.gaz_cout_mois
+                name: Coût mois
+
+      ##########################################################################
+      # ANNUEL — Conso année + Projection annuelle
+      ##########################################################################
+
+      - type: grid
+        title: Bilan annuel
+        columns: 3
+        square: false
+        cards:
+          - type: entities
+            title: Année en cours
+            show_header_toggle: false
+            entities:
+              - entity: sensor.gaz_kwh_annee
+                name: kWh cette année
+              - entity: sensor.gaz_m3_annee
+                name: Volume cette année
+              - entity: sensor.gaz_cout_annee
+                name: Coût cette année
+
+          - type: gauge
+            entity: sensor.gaz_kwh_annee
+            name: Conso annuelle kWh
+            min: 0
+            max: 8000
+            needle: true
+            severity:
+              green: 0
+              yellow: 5000
+              red: 7000
+
+          - type: gauge
+            entity: sensor.gaz_cout_annee
+            name: Coût annuel €
+            min: 0
+            max: 900
+            needle: true
+            severity:
+              green: 0
+              yellow: 550
+              red: 800
+
+      - type: history-graph
+        title: Historique annuel — Conso mensuelle (12 mois)
+        hours_to_show: 8760
+        entities:
+          - entity: sensor.gaz_kwh_mois
+            name: kWh par mois
+          - entity: sensor.gaz_cout_mois
+            name: Coût par mois
+        group_by: date
+        period: month
+
+      ##########################################################################
+      # PROJECTION
+      ##########################################################################
+
+      - type: grid
+        title: Projection
+        columns: 2
+        square: false
+        cards:
+          - type: history-graph
+            title: Projection kWh mois
+            hours_to_show: 720
+            entities:
+              - entity: sensor.gaz_projection_mois
+                name: Projection kWh
+
+          - type: history-graph
+            title: Projection coût mois
+            hours_to_show: 720
+            entities:
+              - entity: sensor.gaz_projection_cout_mois
+                name: Projection coût

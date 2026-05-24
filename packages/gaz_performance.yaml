@@ -34,7 +34,24 @@ input_number:
     initial: 40
 
 ###############################################################################
-# COMPTEURS JOUR / MOIS
+# REFERENTIEL DJU (degrés-jours unifiés) — Moyen de normaliser la conso
+# DJU = max(0, 18°C - température extérieure moyenne du jour)
+# Permet de comparer la conso de gaz entre jours chauds et froids
+###############################################################################
+
+input_number:
+  dju_base_temperature:
+    name: Température base DJU
+    min: 10
+    max: 22
+    step: 0.5
+    mode: box
+    unit_of_measurement: "°C"
+    icon: mdi:thermometer
+    initial: 18
+
+###############################################################################
+# COMPTEURS JOUR / MOIS / ANNEE
 ###############################################################################
 
 utility_meter:
@@ -52,6 +69,13 @@ utility_meter:
     cycle: monthly
     periodically_resetting: false
 
+  gaz_kwh_annee:
+    source: sensor.gazpar_energy
+    name: Gaz kWh année
+    unique_id: gaz_kwh_annee
+    cycle: yearly
+    periodically_resetting: false
+
   gaz_m3_jour:
     source: sensor.gazpar_volume
     name: Gaz m3 jour
@@ -66,9 +90,17 @@ utility_meter:
     cycle: monthly
     periodically_resetting: false
 
+  gaz_m3_annee:
+    source: sensor.gazpar_volume
+    name: Gaz m3 année
+    unique_id: gaz_m3_annee
+    cycle: yearly
+    periodically_resetting: false
+
 ###############################################################################
-# CAPTEURS CALCULES
+# CAPTEURS CALCULES — Coûts
 ###############################################################################
+
 template:
   - sensor:
       - name: "Gaz coût jour"
@@ -88,6 +120,19 @@ template:
           {% set kwh = states('sensor.gaz_kwh_mois') | float(0) %}
           {% set price = states('input_number.gaz_price_kwh') | float(0) %}
           {{ (kwh * price) | round(2) }}
+
+      - name: "Gaz coût année"
+        unique_id: gaz_cost_year
+        icon: mdi:currency-eur
+        unit_of_measurement: "€"
+        state: >
+          {% set kwh = states('sensor.gaz_kwh_annee') | float(0) %}
+          {% set price = states('input_number.gaz_price_kwh') | float(0) %}
+          {{ (kwh * price) | round(2) }}
+
+      ##########################################################################
+      # CAPTEURS CALCULES — Projections
+      ##########################################################################
 
       - name: "Gaz projection mois"
         unique_id: gaz_month_projection_kwh
@@ -111,6 +156,10 @@ template:
           {% set projected_kwh = states('sensor.gaz_projection_mois') | float(0) %}
           {% set price = states('input_number.gaz_price_kwh') | float(0) %}
           {{ (projected_kwh * price) | round(2) }}
+
+      ##########################################################################
+      # CAPTEURS CALCULES — Économies
+      ##########################################################################
 
       - name: "Gaz économie jour kWh"
         unique_id: gaz_daily_saving_kwh
@@ -143,21 +192,83 @@ template:
           {% set today = states('sensor.gaz_kwh_jour') | float(0) %}
           {{ (today - target) | round(1) }}
 
+      - name: "Gaz économie cumulée mois kWh"
+        unique_id: gaz_monthly_cumulative_saving_kwh
+        icon: mdi:leaf-circle
+        unit_of_measurement: "kWh"
+        state: >
+          {% set ref = states('input_number.gaz_reference_daily_kwh') | float(0) %}
+          {% set month = states('sensor.gaz_kwh_mois') | float(0) %}
+          {% set day = now().day | float(1) %}
+          {% set ref_total = ref * day %}
+          {{ (ref_total - month) | round(1) }}
+
+      - name: "Gaz économie cumulée mois €"
+        unique_id: gaz_monthly_cumulative_saving_eur
+        icon: mdi:cash-multiple
+        unit_of_measurement: "€"
+        state: >
+          {% set cumul_kwh = states('sensor.gaz_economie_cumulee_mois_kwh') | float(0) %}
+          {% set price = states('input_number.gaz_price_kwh') | float(0) %}
+          {{ (cumul_kwh * price) | round(2) }}
+
+      - name: "Gaz conso moyenne journalière mois"
+        unique_id: gaz_daily_avg_month
+        icon: mdi:calendar-today
+        unit_of_measurement: "kWh/j"
+        state: >
+          {% set month = states('sensor.gaz_kwh_mois') | float(0) %}
+          {% set day = now().day | float(1) %}
+          {% if day > 0 %}
+            {{ (month / day) | round(1) }}
+          {% else %}
+            0
+          {% endif %}
+
+      ##########################################################################
+      # STATUT — Indicateur texte de performance
+      ##########################################################################
+
       - name: "Gaz statut économie"
         unique_id: gaz_saving_status
         icon: mdi:home-thermometer
         state: >
           {% set saving = states('sensor.gaz_economie_jour_pourcentage') | float(0) %}
           {% set delta = states('sensor.gaz_ecart_objectif_jour') | float(0) %}
-
           {% if saving >= 20 %}
-            Très bon
+            🟢 Très bon
           {% elif saving >= 10 %}
-            Bon
+            🟢 Bon
           {% elif saving >= 0 %}
-            Léger gain
+            🟡 Léger gain
           {% elif delta <= 5 %}
-            Correct
+            🟠 Correct
           {% else %}
-            Trop haut
+            🔴 Trop haut
+          {% endif %}
+
+      ##########################################################################
+      # INTENSITE ENERGETIQUE — kWh par DJU (pour comparer indépendamment de la météo)
+      ##########################################################################
+
+      - name: "Gaz DJU jour"
+        unique_id: gaz_dju_day
+        icon: mdi:snowflake-thermometer
+        unit_of_measurement: "DJU"
+        state: >
+          {% set base = states('input_number.dju_base_temperature') | float(18) %}
+          {% set out_temp = states('sensor.gazpar_temperature') | float(base) %}
+          {{ [0, (base - out_temp)] | max | round(1) }}
+
+      - name: "Gaz intensité énergétique"
+        unique_id: gaz_energy_intensity
+        icon: mdi:chart-bell-curve
+        unit_of_measurement: "kWh/DJU"
+        state: >
+          {% set dju = states('sensor.gaz_dju_jour') | float(0) %}
+          {% set kwh = states('sensor.gaz_kwh_jour') | float(0) %}
+          {% if dju > 0 %}
+            {{ (kwh / dju) | round(2) }}
+          {% else %}
+            0
           {% endif %}
