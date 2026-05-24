@@ -40,7 +40,7 @@ views:
 
       - type: grid
         title: Vue d'ensemble
-        columns: 3
+        columns: 2
         square: false
         cards:
           - type: gauge
@@ -71,19 +71,19 @@ views:
               - entity: sensor.gaz_statut_economie
                 name: Statut
 
-          - type: entities
-            title: Réglages économie
-            show_header_toggle: false
-            state_color: true
-            entities:
-              - entity: input_number.gaz_price_kwh
-                name: Prix kWh gaz
-              - entity: input_number.gaz_reference_daily_kwh
-                name: Ancienne moyenne kWh/jour
-              - entity: input_number.gaz_target_daily_kwh
-                name: Objectif kWh/jour
-              - entity: input_number.dju_base_temperature
-                name: Température base DJU
+      - type: entities
+        title: Réglages économie
+        show_header_toggle: false
+        state_color: true
+        entities:
+          - entity: input_number.gaz_price_kwh
+            name: Prix kWh gaz
+          - entity: input_number.gaz_reference_daily_kwh
+            name: Ancienne moyenne kWh/jour
+          - entity: input_number.gaz_target_daily_kwh
+            name: Objectif kWh/jour
+          - entity: input_number.dju_base_temperature
+            name: Température base DJU
 
       ##########################################################################
       # MINI-GRAPHS JOUR — Trend rapide sur 48h
@@ -144,7 +144,7 @@ views:
 
       - type: grid
         title: Journalier sur 14 jours
-        columns: 3
+        columns: 2
         square: false
         cards:
           - type: history-graph
@@ -155,16 +155,11 @@ views:
                 name: kWh jour
 
           - type: history-graph
-            title: Volume journalier
+            title: Volume & Coût journaliers
             hours_to_show: 336
             entities:
               - entity: sensor.gaz_m3_jour
                 name: m³ jour
-
-          - type: history-graph
-            title: Coût journalier
-            hours_to_show: 336
-            entities:
               - entity: sensor.gaz_cout_jour
                 name: Coût jour
 
@@ -204,7 +199,7 @@ views:
 
       - type: grid
         title: Mois en cours
-        columns: 3
+        columns: 2
         square: false
         cards:
           - type: entities
@@ -235,20 +230,20 @@ views:
               yellow: 1200
               red: 1700
 
-          - type: gauge
-            entity: sensor.gaz_cout_mois
-            name: Coût gaz ce mois
-            min: 0
-            max: 200
-            needle: true
-            severity:
-              green: 0
-              yellow: 120
-              red: 170
+      - type: gauge
+        entity: sensor.gaz_cout_mois
+        name: Coût gaz ce mois
+        min: 0
+        max: 200
+        needle: true
+        severity:
+          green: 0
+          yellow: 120
+          red: 170
 
       - type: grid
         title: Graphiques mensuels (30 jours)
-        columns: 3
+        columns: 2
         square: false
         cards:
           - type: history-graph
@@ -259,16 +254,11 @@ views:
                 name: kWh mois
 
           - type: history-graph
-            title: Volume mois
+            title: Volume & Coût mois
             hours_to_show: 720
             entities:
               - entity: sensor.gaz_m3_mois
                 name: m³ mois
-
-          - type: history-graph
-            title: Coût mois
-            hours_to_show: 720
-            entities:
               - entity: sensor.gaz_cout_mois
                 name: Coût mois
 
@@ -278,7 +268,7 @@ views:
 
       - type: grid
         title: Bilan annuel
-        columns: 3
+        columns: 2
         square: false
         cards:
           - type: entities
@@ -303,16 +293,16 @@ views:
               yellow: 5000
               red: 7000
 
-          - type: gauge
-            entity: sensor.gaz_cout_annee
-            name: Coût annuel €
-            min: 0
-            max: 900
-            needle: true
-            severity:
-              green: 0
-              yellow: 550
-              red: 800
+      - type: gauge
+        entity: sensor.gaz_cout_annee
+        name: Coût annuel €
+        min: 0
+        max: 900
+        needle: true
+        severity:
+          green: 0
+          yellow: 550
+          red: 800
 
       - type: history-graph
         title: Historique annuel — Conso mensuelle (12 mois)
