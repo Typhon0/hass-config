@@ -11,7 +11,7 @@ views:
       - type: horizontal-stack
         cards:
           - type: statistic
-            entity: sensor.gaz_daily_avg_month
+            entity: sensor.gaz_conso_moyenne_journaliere_mois
             period:
               calendar:
                 period: month
@@ -27,7 +27,7 @@ views:
             name: Coût mois
 
           - type: statistic
-            entity: sensor.gaz_monthly_cumulative_saving_eur
+            entity: sensor.gaz_economie_cumulee_mois_eur
             period:
               calendar:
                 period: month
@@ -212,7 +212,7 @@ views:
                 name: Volume ce mois
               - entity: sensor.gaz_cout_mois
                 name: Coût ce mois
-              - entity: sensor.gaz_daily_avg_month
+              - entity: sensor.gaz_conso_moyenne_journaliere_mois
                 name: Moyenne jour
               - entity: sensor.gaz_economie_cumulee_mois_kwh
                 name: Économie cumulée kWh
