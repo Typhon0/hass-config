@@ -221,7 +221,7 @@ views:
                 double_tap_action:
                   action: more-info
               - type: custom:button-card
-                entity: sensor.pc_loic_sessionstate
+                entity: sensor.pc_loic_loggeduser
                 name: PC
                 tap_action: !include popup/bureau_dator.yaml
                 template:
@@ -239,7 +239,7 @@ views:
                       return trigger === undefined || trigger;
                     ]]]
               - type: custom:button-card
-                entity: climate.smart_radiator_thermostat_bureau
+                entity: climate.thermostat1
                 name: Tado
                 tap_action:
                   action: more-info
@@ -491,7 +491,7 @@ views:
                             state: Kök
                         card:
                           type: custom:button-card
-                          entity: media_player.kok
+                          entity: media_player.nesthub7ade
                           template:
                             - conditional_media
                             - icon_nest_mini
@@ -499,7 +499,7 @@ views:
                     columns: 2
                     cards:
                       - type: custom:button-card
-                        entity: media_player.samsungtv_qn90a
+                        entity: media_player.samsung_qn90aa_75_tv
                         name: Salon
                         template:
                           - media
@@ -517,7 +517,7 @@ views:
                           - media
                           - icon_spotify
                       - type: custom:button-card
-                        entity: media_player.kok
+                        entity: media_player.nesthub7ade
                         name: Nest Mini
                         template:
                           - media
