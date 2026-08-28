@@ -84,3 +84,49 @@ boost_eau_chaude_2_douches:
     enabled: false
   mode: single
   description: ''
+
+home_leave:
+  alias: Absence
+  description: Eteint toutes les lumieres et envoie une notification de depart.
+  icon: mdi:home-export-outline
+  mode: single
+  sequence:
+  - action: light.turn_off
+    target:
+      entity_id:
+      - light.buanderie_led
+      - light.camera_jardin
+      - light.lampe_bureau
+      - light.lampe_salon
+      - light.led_strip_bureau
+      - light.ledbuanderie1
+      - light.ledbuanderie2
+      - light.ledbuanderie3
+      - light.ledbuanderie4
+      - light.ledbuanderie5
+      - light.ledbuanderie6
+      - light.lumiere_bureau
+      - light.mibedsidelamp2
+      - light.netatmo_presence
+      - light.spot_buanderie
+      - light.ampoule_lampadaire_salon
+  - action: notify.mobile_app_iphone_de_loic
+    data:
+      title: Mode Absence
+      message: Maison en absence — toutes les lumieres sont eteintes.
+home_arrive:
+  alias: Retour
+  description: Rallume les lumieres principales et envoie une notification d'arrivee.
+  icon: mdi:home-import-outline
+  mode: single
+  sequence:
+  - action: light.turn_on
+    target:
+      entity_id:
+      - light.lampe_salon
+      - light.lampe_bureau
+      - light.led_strip_bureau
+  - action: notify.mobile_app_iphone_de_loic
+    data:
+      title: Mode Retour
+      message: Bienvenue a la maison — lumieres principales allumees.

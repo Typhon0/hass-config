@@ -1,0 +1,51 @@
+# Package lessive (machine à laver)
+# Remplace l'ancien packagesToMigrate/laundry_timer.yaml (calendrier suédois)
+# Désormais branché sur input_select.status_machine_a_laver (Terminé / En cours)
+
+timer:
+  laundry:
+    name: Lessive
+    duration: "01:00:00"
+    icon: mdi:washing-machine
+    restore: true
+
+input_boolean:
+  laundry_display:
+    name: Afficher lessive
+    icon: mdi:eye
+
+automation:
+  - alias: laundry_start
+    id: laundry_start_2026
+    mode: restart
+    description: Démarre le timer et affiche le widget quand la machine est lancée.
+    trigger:
+      - platform: state
+        entity_id: input_select.status_machine_a_laver
+        to: "En cours"
+    action:
+      - action: input_boolean.turn_on
+        target:
+          entity_id: input_boolean.laundry_display
+      - action: timer.cancel
+        target:
+          entity_id: timer.laundry
+      - action: timer.start
+        target:
+          entity_id: timer.laundry
+
+  - alias: laundry_done
+    id: laundry_done_2026
+    mode: single
+    description: Cache le widget quand la machine est terminée.
+    trigger:
+      - platform: state
+        entity_id: input_select.status_machine_a_laver
+        to: "Terminé"
+    action:
+      - action: timer.cancel
+        target:
+          entity_id: timer.laundry
+      - action: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.laundry_display
