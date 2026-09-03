@@ -60,7 +60,7 @@ input_number:
     step: 1
     unit_of_measurement: "°C"
     mode: box
-    initial: 10
+    initial: 55
 
 timer:
   hot_water_boost:
@@ -83,8 +83,7 @@ script:
             data:
               value: >-
                 {{
-                  state_attr('water_heater.vitrocrossal_300_cu3a_domestic_hot_water', 'temperature')
-                  | float(10)
+                  states('number.vitrocrossal_300_cu3a_dhw_temperature') | float(55)
                 }}
 
       - service: water_heater.set_temperature
@@ -291,13 +290,14 @@ automation:
 
     action:
       - variables:
-          restore_temp: "{{ states('input_number.hot_water_boost_restore_temp') | float(10) }}"
+          restore_temp: "{{ states('input_number.hot_water_boost_restore_temp') | float(55) }}"
+          dhw_target: "{{ states('number.vitrocrossal_300_cu3a_dhw_temperature') | float(55) }}"
 
       - service: water_heater.set_temperature
         target:
           entity_id: water_heater.vitrocrossal_300_cu3a_domestic_hot_water
         data:
-          temperature: "{{ restore_temp }}"
+          temperature: "{{ max(restore_temp, dhw_target) }}"
 
       - choose:
           - conditions:
