@@ -25,6 +25,8 @@ home-assistant.log*
 !themes
 !packages
 !button_card_templates
+!scripts
+!*.py
 
 # Ignore folders.
 .storage

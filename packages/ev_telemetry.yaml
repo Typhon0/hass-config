@@ -1,0 +1,342 @@
+###############################################################################
+# VÉHICULE ÉLECTRIQUE - TÉLÉMÉTRIE WALLBOX & TESLA MODEL 3
+# Contrat : Offre Intelligent Octopus Fixe (Option HP / HC 6 kVA)
+# - Heures Creuses : 21H22 - 5H22 (0,1566 €/kWh TTC)
+# - Heures Pleines : 0,2111 €/kWh TTC
+# - Abonnement : 16,01 €/mois TTC | PRM : 05685094046381
+# - Recharge VE Intelligent Octopus : 0,0800 €/kWh TTC garanti via cagnotte
+#   (Différence reversée chaque mois en cashback dans la cagnotte Octopus)
+###############################################################################
+
+input_number:
+  ve_prix_kwh_heures_creuses:
+    name: "Tarif Maison Heures Creuses (TTC)"
+    min: 0.01
+    max: 0.60
+    step: 0.0001
+    mode: box
+    unit_of_measurement: "€/kWh"
+    icon: mdi:weather-night
+    initial: 0.1566
+
+  ve_prix_kwh_heures_pleines:
+    name: "Tarif Maison Heures Pleines (TTC)"
+    min: 0.01
+    max: 0.60
+    step: 0.0001
+    mode: box
+    unit_of_measurement: "€/kWh"
+    icon: mdi:weather-sunny
+    initial: 0.2111
+
+  ve_prix_kwh_cible_recharge:
+    name: "Tarif Voiture Seule via Cagnotte (TTC)"
+    min: 0.01
+    max: 0.60
+    step: 0.0001
+    mode: box
+    unit_of_measurement: "€/kWh"
+    icon: mdi:piggy-bank
+    initial: 0.0800
+
+template:
+  - binary_sensor:
+      - name: "VE Heures Creuses Recharge"
+        unique_id: ve_heures_creuses_charging
+        icon: mdi:clock-time-four
+        state: >
+          {% set t = now().strftime('%H:%M') %}
+          {{ t >= '21:22' or t < '05:22' }}
+        attributes:
+          plage: "21h22 - 05h22"
+          tarif_contrat_hc: "{{ states('input_number.ve_prix_kwh_heures_creuses') | float(0.1566) }} €/kWh"
+          tarif_contrat_hp: "{{ states('input_number.ve_prix_kwh_heures_pleines') | float(0.2111) }} €/kWh"
+          tarif_garanti_ve: "{{ states('input_number.ve_prix_kwh_cible_recharge') | float(0.08) }} €/kWh"
+
+  - sensor:
+      - name: "VE Tarif Contrat Actuel"
+        unique_id: ve_current_contract_kwh_price
+        icon: mdi:currency-eur
+        unit_of_measurement: "€/kWh"
+        state: >
+          {% if is_state('binary_sensor.ve_heures_creuses_recharge', 'on') %}
+            {{ states('input_number.ve_prix_kwh_heures_creuses') | float(0.1566) }}
+          {% else %}
+            {{ states('input_number.ve_prix_kwh_heures_pleines') | float(0.2111) }}
+          {% endif %}
+        attributes:
+          tranche: >
+            {% if is_state('binary_sensor.ve_heures_creuses_recharge', 'on') %}
+              Heures Creuses (0,1566 €/kWh)
+            {% else %}
+              Heures Pleines (0,2111 €/kWh)
+            {% endif %}
+
+      - name: "VE Tarif kWh Actuel"
+        unique_id: ve_current_kwh_price
+        icon: mdi:piggy-bank
+        unit_of_measurement: "€/kWh"
+        state: >
+          {{ states('input_number.ve_prix_kwh_cible_recharge') | float(0.08) }}
+        attributes:
+          tranche: "Garanti Intelligent Octopus (0,08 €/kWh net)"
+          contrat_brut: >
+            {% if is_state('binary_sensor.ve_heures_creuses_recharge', 'on') %}
+              0.1566 €/kWh (HC)
+            {% else %}
+              0.2111 €/kWh (HP)
+            {% endif %}
+          cagnotte_kwh: >
+            {% if is_state('binary_sensor.ve_heures_creuses_recharge', 'on') %}
+              0.0766 €/kWh reversés
+            {% else %}
+              0.1311 €/kWh reversés
+            {% endif %}
+
+      - name: "VE Statut Recharge"
+        unique_id: ve_charging_status
+        icon: mdi:ev-station
+        state: >
+          {% set power = states('sensor.wallbox_pulsar_max_sn_1331158_charging_power') | float(0) %}
+          {% set cable = is_state('binary_sensor.tesla_model_3_highland_charge_cable', 'on') %}
+          {% set wallbox_status = states('sensor.wallbox_pulsar_max_sn_1331158_status_description') %}
+
+          {% if power > 0.5 or wallbox_status == 'Charging' %}
+            ⚡ En charge
+          {% elif cable or wallbox_status in ['Waiting', 'Connected', 'Paused'] %}
+            🔌 Branchée (Attente Heures Creuses)
+          {% else %}
+            Débranchée
+          {% endif %}
+        attributes:
+          puissance_kw: "{{ states('sensor.wallbox_pulsar_max_sn_1331158_charging_power') }}"
+          batterie_tesla: "{{ states('sensor.ve_batterie_tesla') }} %"
+          autonomie_km: "{{ states('sensor.ve_autonomie_tesla') }} km"
+          energie_ajoutee_kwh: "{{ states('sensor.wallbox_pulsar_max_sn_1331158_added_energy') }} kWh"
+          fin_estimee: "{{ states('sensor.ve_fin_de_charge') }}"
+
+      - name: "VE Coût Session Recharge"
+        unique_id: ve_session_cost_eur
+        unit_of_measurement: "€"
+        icon: mdi:cash-check
+        state: >
+          {% set energy = states('sensor.wallbox_pulsar_max_sn_1331158_added_energy') | float(0) %}
+          {% set price_ve = states('input_number.ve_prix_kwh_cible_recharge') | float(0.08) %}
+          {{ (energy * price_ve) | round(2) }}
+        attributes:
+          description: "Coût net réel garanti Intelligent Octopus 0,08 €/kWh"
+
+      - name: "VE Montant Facturé Brut"
+        unique_id: ve_session_invoiced_brut_eur
+        unit_of_measurement: "€"
+        icon: mdi:file-document-outline
+        state: >
+          {% set energy = states('sensor.wallbox_pulsar_max_sn_1331158_added_energy') | float(0) %}
+          {% set price_hc = states('input_number.ve_prix_kwh_heures_creuses') | float(0.1566) %}
+          {% set price_hp = states('input_number.ve_prix_kwh_heures_pleines') | float(0.2111) %}
+          {% set is_hc = is_state('binary_sensor.ve_heures_creuses_recharge', 'on') %}
+          {% set power = states('sensor.wallbox_pulsar_max_sn_1331158_charging_power') | float(0) %}
+          {% set price = price_hc if (is_hc or power == 0) else price_hp %}
+          {{ (energy * price) | round(2) }}
+        attributes:
+          description: "Montant brut facturé avant reversement cagnotte"
+
+      - name: "VE Économie Session Recharge"
+        unique_id: ve_session_saving_eur
+        unit_of_measurement: "€"
+        icon: mdi:piggy-bank
+        state: >
+          {% set brut = states('sensor.ve_montant_facture_brut') | float(0) %}
+          {% set net = states('sensor.ve_cout_session_recharge') | float(0) %}
+          {{ ([0, (brut - net)] | max) | round(2) }}
+        attributes:
+          description: "Cashback reversé par Octopus dans la cagnotte"
+
+      - name: "VE Économie vs Heures Pleines"
+        unique_id: ve_saving_vs_peak_eur
+        unit_of_measurement: "€"
+        icon: mdi:cash-plus
+        state: >
+          {% set energy = states('sensor.wallbox_pulsar_max_sn_1331158_added_energy') | float(0) %}
+          {% set price_hp = states('input_number.ve_prix_kwh_heures_pleines') | float(0.2111) %}
+          {% set net = states('sensor.ve_cout_session_recharge') | float(0) %}
+          {{ ([0, ((energy * price_hp) - net)] | max) | round(2) }}
+        attributes:
+          description: "Économie globale par rapport à une recharge aux Heures Pleines (0,2111 €/kWh)"
+
+      - name: "VE Câble Statut"
+        unique_id: ve_cable_status_display
+        icon: mdi:power-plug
+        state: >
+          {% set tesla_cable = states('binary_sensor.tesla_model_3_highland_charge_cable') %}
+          {% set wb_status = states('sensor.wallbox_pulsar_max_sn_1331158_status_description') %}
+          {% if tesla_cable == 'on' or wb_status in ['Charging', 'Waiting', 'Connected', 'Paused'] %}
+            Connecté
+          {% elif wb_status == 'Ready' or tesla_cable == 'off' %}
+            Déconnecté
+          {% else %}
+            Déconnecté
+          {% endif %}
+
+      - name: "VE Fin de Charge"
+        unique_id: ve_time_to_full_charge_display
+        icon: mdi:clock-end
+        state: >
+          {% set t = states('sensor.tesla_model_3_highland_time_to_full_charge') %}
+          {% set p = states('sensor.wallbox_pulsar_max_sn_1331158_charging_power') | float(0) %}
+          {% if p > 0.2 and t not in ['unknown', 'unavailable', 'None'] and t != '' %}
+            {{ t }}
+          {% else %}
+            Non en charge
+          {% endif %}
+
+      - name: "VE Climatisation Statut"
+        unique_id: ve_climate_status_display
+        icon: mdi:air-conditioner
+        state: >
+          {% set cl = states('climate.tesla_model_3_highland_climate') %}
+          {% if cl in ['cool', 'heat', 'fan_only'] %}
+            Active
+          {% elif cl == 'off' %}
+            Éteinte
+          {% else %}
+            En veille
+          {% endif %}
+
+      - name: "VE Verrouillage Voiture"
+        unique_id: ve_car_lock_status_display
+        icon: mdi:car-door-lock
+        state: >
+          {% set lk = states('lock.tesla_model_3_highland_lock') %}
+          {% if lk == 'unlocked' %}
+            Déverrouillée
+          {% elif lk == 'locked' %}
+            Verrouillée
+          {% else %}
+            Verrouillée (veille)
+          {% endif %}
+
+      - name: "VE Batterie Tesla"
+        unique_id: ve_tesla_battery_level_percent
+        icon: mdi:battery-charging
+        unit_of_measurement: "%"
+        state: >
+          {% set b = states('sensor.tesla_model_3_highland_battery_level') %}
+          {% if b not in ['unknown', 'unavailable', 'None'] and b != '' %}
+            {{ b }}
+          {% elif this.state is defined and this.state not in ['unknown', 'unavailable', '0', ''] %}
+            {{ this.state }}
+          {% else %}
+            73
+          {% endif %}
+
+      - name: "VE Autonomie Tesla"
+        unique_id: ve_tesla_battery_range_km
+        icon: mdi:speedometer
+        unit_of_measurement: "km"
+        state: >
+          {% set r = states('sensor.tesla_model_3_highland_battery_range') %}
+          {% if r not in ['unknown', 'unavailable', 'None'] and r != '' %}
+            {{ r | float(0) | round(0) }}
+          {% elif this.state is defined and this.state not in ['unknown', 'unavailable', '0', ''] %}
+            {{ this.state }}
+          {% else %}
+            348
+          {% endif %}
+
+      - name: "VE Tension Réseau"
+        unique_id: ve_charger_voltage_display
+        icon: mdi:sine-wave
+        unit_of_measurement: "V"
+        state: >
+          {% set v = states('sensor.tesla_model_3_highland_charger_voltage') %}
+          {% if v not in ['unknown', 'unavailable', 'None'] and v != '' %}
+            {{ v }}
+          {% else %}
+            230
+          {% endif %}
+
+      - name: "VE Intensité Charge"
+        unique_id: ve_charger_current_display
+        icon: mdi:flash-outline
+        unit_of_measurement: "A"
+        state: >
+          {% set a = states('sensor.tesla_model_3_highland_charger_current') %}
+          {% if a not in ['unknown', 'unavailable', 'None'] and a != '' %}
+            {{ a }}
+          {% else %}
+            0
+          {% endif %}
+
+      - name: "VE Température Intérieure"
+        unique_id: ve_inside_temperature_display
+        icon: mdi:thermometer
+        unit_of_measurement: "°C"
+        state: >
+          {% set t = states('sensor.tesla_model_3_highland_inside_temperature') %}
+          {% if t not in ['unknown', 'unavailable', 'None'] and t != '' %}
+            {{ t }}
+          {% elif this.state is defined and this.state not in ['unknown', 'unavailable', 'None', ''] %}
+            {{ this.state }}
+          {% else %}
+            19
+          {% endif %}
+
+      - name: "VE Température Extérieure"
+        unique_id: ve_outside_temperature_display
+        icon: mdi:thermometer-lines
+        unit_of_measurement: "°C"
+        state: >
+          {% set t = states('sensor.tesla_model_3_highland_outside_temperature') %}
+          {% if t not in ['unknown', 'unavailable', 'None'] and t != '' %}
+            {{ t }}
+          {% else %}
+            {{ states('sensor.vitrocrossal_300_cu3a_outside_temperature') | default('16', true) }}
+          {% endif %}
+
+      - name: "VE Mode Sentinelle Statut"
+        unique_id: ve_sentry_mode_status_display
+        icon: mdi:cctv
+        state: >
+          {% set s = states('switch.tesla_model_3_highland_sentry_mode') %}
+          {% if s == 'on' %}
+            Actif
+          {% elif s == 'off' %}
+            Inactif
+          {% else %}
+            Inactif (veille)
+          {% endif %}
+
+      - name: "VE Emplacement Voiture"
+        unique_id: ve_location_status_display
+        icon: mdi:map-marker
+        state: >
+          {% set loc = states('device_tracker.tesla_model_3_highland_location') %}
+          {% if loc not in ['unknown', 'unavailable', 'None'] and loc != '' %}
+            {{ loc }}
+          {% else %}
+            Maison
+          {% endif %}
+
+automation:
+  - alias: "VE Notification Fin de Recharge"
+    id: ve_notification_fin_recharge
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: sensor.wallbox_pulsar_max_sn_1331158_status_description
+        from: "Charging"
+    condition:
+      - condition: template
+        value_template: "{{ trigger.to_state.state not in ['Charging', 'unknown', 'unavailable'] }}"
+      - condition: template
+        value_template: "{{ states('sensor.wallbox_pulsar_max_sn_1331158_added_energy') | float(0) > 1.0 }}"
+    action:
+      - action: notify.mobile_app_iphone_de_loic
+        data:
+          title: "⚡ Recharge Tesla terminée"
+          message: >-
+            Session terminée.
+            Énergie ajoutée : {{ states('sensor.wallbox_pulsar_max_sn_1331158_added_energy') }} kWh (+{{ states('sensor.wallbox_pulsar_max_sn_1331158_added_range') }} km).
+            Batterie actuelle : {{ states('sensor.ve_batterie_tesla') }}%.
+            Coût net garanti : {{ states('sensor.ve_cout_session_recharge') }} € (Cagnotte : {{ states('sensor.ve_economie_session_recharge') }} €).

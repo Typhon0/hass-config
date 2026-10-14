@@ -1,0 +1,68 @@
+# ==============================================================================
+# JELLYFIN & APPLE TV CONDITIONAL MEDIA MANAGEMENT
+# Architecture:
+# 1. command_line sensor (sensor.jellyfin_playing) via /config/scripts/jellyfin_playing.py
+# 2. command_line sensor (sensor.sejour_artwork) resolving YouTube / streaming thumbnails
+# 3. template select (select.conditional_media) ensuring dynamic switching
+# ==============================================================================
+
+command_line:
+  - sensor:
+      name: "Jellyfin: Playing"
+      unique_id: jellyfin_playing
+      command: "python3 /config/scripts/jellyfin_playing.py"
+      value_template: "{{ value_json.state | default('idle') }}"
+      json_attributes:
+        - Name
+        - SeriesName
+        - media_title
+        - media_artist
+        - ParentBackdropItemId
+        - entity_picture
+        - is_paused
+        - device
+        - client
+      scan_interval: 10
+
+  - sensor:
+      name: "Sejour Artwork"
+      unique_id: sejour_artwork
+      command: "python3 /config/scripts/resolve_media_artwork.py"
+      value_template: "{{ value_json.artwork | default('', true) }}"
+      scan_interval: 10
+
+template:
+  - select:
+      - name: conditional_media
+        unique_id: conditional_media_dashboard_select
+        state: >
+          {% if is_state('sensor.jellyfin_playing', 'playing') or is_state('sensor.jellyfin_playing', 'paused') %}
+            Dernier lu
+          {% elif states('media_player.sejour') in ['playing', 'paused'] and not is_state_attr('media_player.sejour', 'app_name', 'Neptune') %}
+            Salon
+          {% elif states('media_player.cuisine') in ['playing', 'paused'] %}
+            Chambre
+          {% elif states('media_player.spotify') in ['playing', 'paused'] %}
+            Spotify
+          {% elif states('media_player.nesthub7ade') in ['playing', 'paused'] %}
+            Cuisine
+          {% else %}
+            Dernier lu
+          {% endif %}
+        options: >
+          {{ ['Dernier lu', 'Salon', 'Chambre', 'Spotify', 'Cuisine'] }}
+        select_option: []
+
+automation:
+  - alias: "Update Sejour Artwork on Media Change"
+    id: "update_sejour_artwork_on_media_change"
+    mode: restart
+    trigger:
+      - platform: state
+        entity_id: media_player.sejour
+        attribute: media_title
+    action:
+      - delay: "00:00:01"
+      - service: homeassistant.update_entity
+        target:
+          entity_id: sensor.sejour_artwork

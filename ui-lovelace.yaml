@@ -449,7 +449,8 @@ views:
                         card:
                           type: custom:button-card
                           entity: sensor.jellyfin_playing
-                          name: Dernier lu
+                          name: >
+                            [[[ return entity.state === 'playing' ? 'En lecture' : entity.state === 'paused' ? 'En pause' : 'Média'; ]]]
                           tap_action:
                             action: none
                           template:
@@ -462,13 +463,21 @@ views:
                         card:
                           type: custom:button-card
                           entity: media_player.sejour
+                          triggers_update:
+                            - sensor.sejour_artwork
+                          name: >
+                            [[[
+                              let app = entity?.attributes?.app_name || entity?.attributes?.source || 'Apple TV',
+                                  state = entity?.state === 'paused' ? 'En pause' : 'En lecture';
+                              return `${app} • ${state}`;
+                            ]]]
                           template:
                             - conditional_media
-                            - icon_apple_tv
+                            - icon_appletv_dynamic
                       - type: conditional
                         conditions:
                           - entity: select.conditional_media
-                            state: Sovrum
+                            state: Chambre
                         card:
                           type: custom:button-card
                           entity: media_player.cuisine
@@ -488,7 +497,7 @@ views:
                       - type: conditional
                         conditions:
                           - entity: select.conditional_media
-                            state: Kök
+                            state: Cuisine
                         card:
                           type: custom:button-card
                           entity: media_player.nesthub7ade
@@ -774,3 +783,7 @@ views:
                 - background: rgba(255,255,255,0.08)
             tap_action:
               action: toggle
+
+
+
+

@@ -37,15 +37,6 @@ alexa:
     filter:
       exclude_entity_globs:
         - sensor.browser_*
-notify:
-  name: "hass agent device"
-  platform: hass_agent_notifier
-  resource: !secret hass_agent_service_ressource
-media_player:
-  - platform: hass_agent_mediaplayer
-    name: "hass agent  mediaplayer"
-    host: !secret hass_agent_mediaplayer_host
-    port: 5115
 tts:
   - platform: google_translate
 proxmoxve:
@@ -71,10 +62,22 @@ template: !include template.yaml
 
 sensor: !include sensors.yaml
 
+recorder:
+  exclude:
+    domains:
+      - camera
+    entity_globs:
+      - sensor.browser_*
+      - light.browser_*
+      - media_player.browser_*
+      - sensor.jellyfin_*
+    entities:
+      - sensor.date
+      - sensor.time
+      - sensor.date_time_iso
+
 lovelace:
-  mode: yaml # This line is correct
-lovelace:
-  mode: yaml # Cette ligne est correcte
+  mode: yaml
   resources:
     # --- Cartes et modules HACS ---
     - url: /hacsfiles/button-card/button-card.js

@@ -46,38 +46,10 @@ lancer_le_mode_console:
       entity_id: button.pc_loic_pc_switch_to_tv
 boost_eau_chaude_2_douches:
   alias: Boost eau chaude (2 douches)
+  description: Relaye vers le gestionnaire officiel de boost ECS (chauffage forcé 55°C avec minuterie résiliente).
   sequence:
-  - action: input_boolean.turn_on
+  - action: script.hot_water_boost_1h
     data: {}
-    target:
-      entity_id: input_boolean.boost_eau_chaude_douche
-  - action: vicare.set_vicare_mode
-    target:
-      entity_id: climate.vitrocrossal_300_cu3a_heating
-    data:
-      vicare_mode: dhw
-  - action: notify.mobile_app_iphone_de_loic
-    data:
-      title: Boost ECS actif
-      message: Eau chaude forcee pour 40 minutes.
-  - action: notify.mobile_app_iphone_de_emma
-    data:
-      title: Boost ECS actif
-      message: Eau chaude forcee pour 40 minutes.
-    enabled: false
-  - delay:
-      hours: 0
-      minutes: 40
-      seconds: 0
-  - action: input_boolean.turn_off
-    data: {}
-    target:
-      entity_id: input_boolean.boost_eau_chaude_douche
-  - action: notify.mobile_app_iphone_de_loic
-    data:
-      title: Boost ECS termine
-      message: Fin du forcage. L'automatisation principale reprend la main.
-  - action: notify.mobile_app_iphone_de_emma
     data:
       title: Boost ECS termine
       message: Fin du forcage. L'automatisation principale reprend la main.

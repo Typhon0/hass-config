@@ -1,0 +1,120 @@
+###############################################################################
+# VITROCROSSAL 300 TELEMETRY & ANTI-SHORT-CYCLE
+###############################################################################
+
+sensor:
+  - platform: history_stats
+    name: "Vitrocrossal Allumages Derniere Heure"
+    unique_id: vitrocrossal_burner_starts_last_hour
+    entity_id: binary_sensor.vitrocrossal_300_cu3a_burner
+    state: "on"
+    type: count
+    end: "{{ now() }}"
+    duration: "01:00:00"
+
+  - platform: history_stats
+    name: "Vitrocrossal Allumages Jour"
+    unique_id: vitrocrossal_burner_starts_daily_history
+    entity_id: binary_sensor.vitrocrossal_300_cu3a_burner
+    state: "on"
+    type: count
+    start: "{{ today_at('00:00') }}"
+    end: "{{ now() }}"
+
+  - platform: history_stats
+    name: "Vitrocrossal Bruleur Temps ECS Jour"
+    unique_id: vitrocrossal_burner_time_dhw_daily
+    entity_id: binary_sensor.vitrocrossal_300_cu3a_dhw_charging
+    state: "on"
+    type: time
+    start: "{{ today_at('00:00') }}"
+    end: "{{ now() }}"
+
+  - platform: history_stats
+    name: "Vitrocrossal Bruleur Temps Total Jour"
+    unique_id: vitrocrossal_burner_time_total_daily
+    entity_id: binary_sensor.vitrocrossal_300_cu3a_burner
+    state: "on"
+    type: time
+    start: "{{ today_at('00:00') }}"
+    end: "{{ now() }}"
+
+template:
+  - sensor:
+      - name: "Vitrocrossal Heures Bruleur Jour"
+        unique_id: vitrocrossal_burner_hours_today_display
+        unit_of_measurement: "h"
+        icon: mdi:clock-outline
+        state: >
+          {{ states('sensor.vitrocrossal_bruleur_temps_total_jour') | float(0) | round(2) }}
+
+      - name: "Vitrocrossal Duree Moyenne Cycle"
+        unique_id: vitrocrossal_avg_cycle_duration
+        unit_of_measurement: "min"
+        icon: mdi:timer-outline
+        state: >
+          {% set s1 = states('sensor.vitrocrossal_allumages_jour') %}
+          {% set starts = (s1 | float(0)) if s1 not in ['unknown', 'unavailable'] else (states('sensor.vitrocrossal_allumages_jour_2') | float(0)) %}
+          {% set hours = states('sensor.vitrocrossal_bruleur_temps_total_jour') | float(0) %}
+          {% if starts > 0 and hours > 0 %}
+            {{ ((hours / starts) * 60) | round(1) }}
+          {% else %}
+            0
+          {% endif %}
+
+      - name: "Vitrocrossal Statut Cycle"
+        unique_id: vitrocrossal_cycle_status
+        icon: mdi:fire-circle
+        state: >
+          {% set avg = states('sensor.vitrocrossal_duree_moyenne_cycle') | float(0) %}
+          {% set s1 = states('sensor.vitrocrossal_allumages_jour') %}
+          {% set starts = (s1 | float(0)) if s1 not in ['unknown', 'unavailable'] else (states('sensor.vitrocrossal_allumages_jour_2') | float(0)) %}
+          {% if starts == 0 %}
+            À l'arrêt
+          {% elif avg >= 25 %}
+            🟢 Optimal (Cycles longs)
+          {% elif avg >= 12 %}
+            🟡 Modéré
+          {% else %}
+            🔴 Court-cycle détecté
+          {% endif %}
+
+      - name: "Vitrocrossal Efficacite Condensation"
+        unique_id: vitrocrossal_condensation_efficiency
+        icon: mdi:water-percent
+        state: >
+          {% set supply = states('sensor.vitrocrossal_300_cu3a_supply_temperature') | float(0) %}
+          {% set burner = is_state('binary_sensor.vitrocrossal_300_cu3a_burner', 'on') %}
+          {% set is_dhw = is_state('binary_sensor.vitrocrossal_300_cu3a_dhw_charging', 'on') %}
+          {% if not burner %}
+            Repos
+          {% elif is_dhw %}
+            🔵 Production Eau Chaude (T° élevée normale)
+          {% elif supply <= 48 %}
+            🟢 Condensation Maximale (~98%)
+          {% elif supply <= 55 %}
+            🟡 Condensation Partielle (~92%)
+          {% else %}
+            🟠 Hors plage condensation (< 88%)
+          {% endif %}
+        attributes:
+          temperature_depart: "{{ states('sensor.vitrocrossal_300_cu3a_supply_temperature') }}"
+          temperature_chaudiere: "{{ states('sensor.vitrocrossal_300_cu3a_boiler_temperature') }}"
+          modulation_bruleur: "{{ states('sensor.vitrocrossal_300_cu3a_burner_modulation') }}"
+
+automation:
+  - alias: "Vitrocrossal Alerte Court Cycle"
+    id: vitrocrossal_alerte_court_cycle
+    mode: single
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.vitrocrossal_allumages_derniere_heure
+        above: 4
+    action:
+      - action: notify.mobile_app_iphone_de_loic
+        data:
+          title: " Chaudière : Fréquence d'allumage élevée"
+          message: >-
+            La Vitrocrossal 300 s'est allumée {{ states('sensor.vitrocrossal_allumages_derniere_heure') }} fois au cours de la dernière heure.
+            Durée moyenne du jour : {{ states('sensor.vitrocrossal_duree_moyenne_cycle') }} min/cycle.
+            Vérifiez l'ouverture des robinets de radiateur ou la consigne de température.

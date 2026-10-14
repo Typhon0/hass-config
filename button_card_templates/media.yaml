@@ -203,7 +203,10 @@ conditional_media:
     card:
       - padding: 5.75% 5.25% 0 5.75%
       - border-radius: calc(var(--button-card-border-radius) / 2)
-      - background: rgba(115, 115, 115, 0.2) center center/cover no-repeat
+      - background-color: rgba(115, 115, 115, 0.2)
+      - background-size: cover
+      - background-position: center center
+      - background-repeat: no-repeat
       - background-image: &media_background_image >
           [[[
             if (entity) {
@@ -211,9 +214,20 @@ conditional_media:
                   return `url(${states[this._config?.triggers_update].state})`;
               } else {
                 let data = entity.attributes.data;
-                return data && (data[variables.i].fanart || data[variables.i].poster)
-                    ? `url("${data[variables.i].fanart}"), url("${data[variables.i].poster}")`
-                    : `url("${variables.entity_picture}")`;
+                if (data && (data[variables.i].fanart || data[variables.i].poster)) {
+                    return `url("${data[variables.i].fanart}"), url("${data[variables.i].poster}")`;
+                }
+                let pic = entity?.attributes?.entity_picture || variables?.entity_picture;
+                if (!pic && entity.entity_id === 'media_player.sejour') {
+                    let art = states['sensor.sejour_artwork']?.state;
+                    if (art && art !== 'unknown' && art !== 'unavailable') {
+                        pic = art;
+                    }
+                }
+                if (pic && pic !== 'unknown' && pic !== 'unavailable') {
+                    return `linear-gradient(0deg, rgba(0,0,0,.6) 0%, rgba(0,0,0,0) 100%), url("${pic}")`;
+                }
+                return `none`;
               }
             }
           ]]]
@@ -265,3 +279,5 @@ conditional_media:
           }, 0);
         return ' ';
       ]]]
+
+

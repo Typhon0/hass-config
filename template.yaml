@@ -1,8 +1,7 @@
 - sensor:
     - name: "jellyfin_playing_episode_backdrop_url"
       state: >
-        http://192.168.1.21:8096/Items/{{states('sensor.jellyfin_playing_2')}}/Images/Backdrop?maxWidth=512&quality=80
-
+        {{ state_attr('sensor.jellyfin_playing', 'entity_picture') | default('', true) }}
 - sensor:
     - unique_id: sidebar
       state: template
@@ -71,10 +70,10 @@
             {{ lights_name }}, {{ devices_name | regex_replace(',([^,]*)$',' et\\1') }} allumée
 
           {% elif (lights_on | length > 1) and (devices_on | length == 1) %}
-            {{ lights_on | length }} lampor et {{ devices_name }} allumée
+            {{ lights_on | length }} lampes et {{ devices_name }} allumée
 
           {% elif (lights_on | length > 1) and (devices_on | length > 1) %}
-            {{ lights_on | length }} lampor, {{ devices_name | regex_replace(',([^,]*)$',' et\\1') }} allumée
+            {{ lights_on | length }} lampes, {{ devices_name | regex_replace(',([^,]*)$',' et\\1') }} allumée
 
           {% elif (lights_on | length == 1) and (devices_on | length == 0) %}
             {{ lights_name }} est allumée
@@ -122,11 +121,3 @@
             <span class="tarif hp">Heure Pleine</span>
           {% endif %}
 
-- sensor:
-  - name: gas_energy
-    unit_of_measurement: 'kWh'
-    state: >
-      {{ states('sensor.gazpar') }}
-    icon: mdi:fire
-    device_class: energy
-    state_class: total_increasing

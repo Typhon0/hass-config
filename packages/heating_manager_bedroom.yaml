@@ -62,10 +62,38 @@ input_number:
     mode: box
     initial: 55
 
+input_datetime:
+  vicare_last_mode_change:
+    name: "Dernier changement de mode ViCare"
+    has_date: true
+    has_time: true
+
 timer:
   hot_water_boost:
     name: Hot Water Boost
     duration: "01:00:00"
+
+  aeration_chambre:
+    name: "Pause Aération Chambre"
+    duration: "00:15:00"
+
+  aeration_salon:
+    name: "Pause Aération Salon"
+    duration: "00:15:00"
+
+binary_sensor:
+  - platform: trend
+    sensors:
+      chute_temperature_chambre:
+        entity_id: sensor.thermo_1_temperature
+        sample_duration: 360
+        min_gradient: -0.0017
+        device_class: opening
+      chute_temperature_salon:
+        entity_id: sensor.thermo_2_temperature
+        sample_duration: 360
+        min_gradient: -0.0017
+        device_class: opening
 
 script:
   hot_water_boost_1h:
@@ -77,7 +105,7 @@ script:
             entity_id: timer.hot_water_boost
             state: idle
         then:
-          - service: input_number.set_value
+          - action: input_number.set_value
             target:
               entity_id: input_number.hot_water_boost_restore_temp
             data:
@@ -86,21 +114,21 @@ script:
                   states('number.vitrocrossal_300_cu3a_dhw_temperature') | float(55)
                 }}
 
-      - service: water_heater.set_temperature
+      - action: water_heater.set_temperature
         target:
           entity_id: water_heater.vitrocrossal_300_cu3a_domestic_hot_water
         data:
           temperature: 55
 
-      - service: timer.start
+      - action: timer.start
         target:
           entity_id: timer.hot_water_boost
         data:
           duration: "01:00:00"
 
-      - service: notify.mobile_app_iphone_de_loic
+      - action: notify.mobile_app_iphone_de_loic
         data:
-          title: "🚿 Boost ECS"
+          title: "☕ Boost ECS"
           message: >-
             Boost eau chaude lancé pour 1h.
             Température forcée à 55°C.
@@ -115,14 +143,14 @@ automation:
       - platform: state
         entity_id:
           - zone.home
-          - schedule.schedule_chauffage_chambre
+          # - schedule.schedule_chauffage_chambre # Commenté : radiateur chambre débranché
           - schedule.schedule_chauffage_salon
-          - sensor.thermo_1_temperature
+          # - sensor.thermo_1_temperature # Commenté : radiateur chambre débranché
           - sensor.thermo_2_temperature
-          - sensor.vitrocrossal_300_cu3a_outside_temperature
-          - climate.thermostat1
+          # - timer.aeration_chambre # Commenté : radiateur chambre débranché
+          - timer.aeration_salon
       - platform: time_pattern
-        minutes: "/5"
+        minutes: "/10"
       - platform: homeassistant
         event: start
 
@@ -150,7 +178,7 @@ automation:
           thermostat1_target_current: "{{ state_attr('climate.thermostat1', 'temperature') | float(0) }}"
           thermostat1_hvac_current: "{{ states('climate.thermostat1') }}"
           deadband: 0.3
-          current_hour: "{{ now().hour + (now().minute / 60) }}"
+          is_heating_now: "{{ vicare_mode_current == 'forcedNormal' }}"
 
           bedroom_target: >-
             {% if someone_home and bedroom_schedule_on %}
@@ -175,43 +203,69 @@ automation:
               {{ states('input_number.heating_salon_night') | float(17) }}
             {% endif %}
 
-          bedroom_needs_heat: >-
-            {{
-              someone_home
-              and bedroom_temp_ok
-              and (bedroom_temp < (bedroom_target | float - deadband))
-            }}
+          bedroom_cutoff: >-
+            {{ (bedroom_target | float) if is_heating_now else ((bedroom_target | float) - deadband) }}
+
+          salon_cutoff: >-
+            {{ (salon_target | float) if is_heating_now else ((salon_target | float) - deadband) }}
+
+          aeration_chambre_active: "{{ is_state('timer.aeration_chambre', 'active') }}"
+          aeration_salon_active: "{{ is_state('timer.aeration_salon', 'active') }}"
+
+          # Détection température chambre commentée (radiateurs chambre débranchés pour l'instant) :
+          # bedroom_needs_heat: >-
+          #   {{
+          #     someone_home
+          #     and bedroom_temp_ok
+          #     and (not aeration_chambre_active)
+          #     and (bedroom_temp < (bedroom_cutoff | float))
+          #   }}
+          bedroom_needs_heat: false
 
           salon_needs_heat: >-
             {{
               someone_home
               and salon_temp_ok
-              and (salon_temp < (salon_target | float - deadband))
+              and (not aeration_salon_active)
+              and (salon_temp < (salon_cutoff | float))
             }}
 
           any_room_needs_heat: "{{ bedroom_needs_heat or salon_needs_heat }}"
           desired_vicare_mode: "{{ 'forcedNormal' if any_room_needs_heat else 'dhw' }}"
+          last_vicare_change: "{{ states('input_datetime.vicare_last_mode_change') }}"
+          seconds_since_change: >-
+            {{
+              (as_timestamp(now()) - as_timestamp(last_vicare_change))
+              if last_vicare_change not in ['unknown', 'unavailable', 'none', '']
+              else 9999
+            }}
+          can_change_vicare_mode: >-
+            {{
+              (not someone_home)
+              or (seconds_since_change | float(9999) >= 600)
+            }}
 
       # 1. On pousse la bonne consigne sur le TRV de la chambre
-      - if:
-          - condition: template
-            value_template: "{{ thermostat1_hvac_current != 'heat' }}"
-        then:
-          - service: climate.set_hvac_mode
-            target:
-              entity_id: climate.thermostat1
-            data:
-              hvac_mode: heat
-
-      - if:
-          - condition: template
-            value_template: "{{ (thermostat1_target_current - (bedroom_target | float)) | abs > 0.2 }}"
-        then:
-          - service: climate.set_temperature
-            target:
-              entity_id: climate.thermostat1
-            data:
-              temperature: "{{ bedroom_target | float }}"
+      # (Commenté temporairement : radiateurs débranchés)
+      # - if:
+      #     - condition: template
+      #       value_template: "{{ thermostat1_hvac_current != 'heat' }}"
+      #   then:
+      #     - action: climate.set_hvac_mode
+      #       target:
+      #         entity_id: climate.thermostat1
+      #       data:
+      #         hvac_mode: heat
+      #
+      # - if:
+      #     - condition: template
+      #       value_template: "{{ (thermostat1_target_current - (bedroom_target | float)) | abs > 0.2 }}"
+      #   then:
+      #     - action: climate.set_temperature
+      #       target:
+      #         entity_id: climate.thermostat1
+      #       data:
+      #         temperature: "{{ bedroom_target | float }}"
 
       # 2. Gestion chaudière
       # forcedNormal = chauffage actif
@@ -219,29 +273,35 @@ automation:
       - choose:
           - conditions:
               - condition: template
-                value_template: "{{ vicare_mode_current != desired_vicare_mode }}"
+                value_template: "{{ (vicare_mode_current != desired_vicare_mode) and can_change_vicare_mode }}"
             sequence:
-              - service: vicare.set_vicare_mode
+              - action: vicare.set_vicare_mode
                 target:
                   entity_id: climate.vitrocrossal_300_cu3a_heating
                 data:
                   vicare_mode: "{{ desired_vicare_mode }}"
 
-              - service: notify.mobile_app_iphone_de_loic
+              - action: input_datetime.set_datetime
+                target:
+                  entity_id: input_datetime.vicare_last_mode_change
+                data:
+                  timestamp: "{{ now().timestamp() }}"
+
+              - action: notify.mobile_app_iphone_de_loic
                 data:
                   title: >-
                     {% if not someone_home %}
                       🏠 Passage en absence
                     {% elif desired_vicare_mode == 'forcedNormal' and bedroom_needs_heat and salon_needs_heat %}
-                      🔥 Chambre et salon trop froids
+                      🔥 Chambre et salon en demande
                     {% elif desired_vicare_mode == 'forcedNormal' and bedroom_needs_heat %}
-                      🔥 Chambre trop froide
+                      🔥 Chambre en demande
                     {% elif desired_vicare_mode == 'forcedNormal' and salon_needs_heat %}
-                      🔥 Salon trop froid
+                      🔥 Salon en demande
                     {% elif desired_vicare_mode == 'forcedNormal' %}
                       🔥 Chauffage lancé
                     {% else %}
-                      ✅ Température atteinte
+                      🌡️ Température atteinte
                     {% endif %}
                   message: >-
                     {% if not someone_home %}
@@ -250,15 +310,15 @@ automation:
                       chauffage coupé, eau chaude conservée.
 
                     {% elif desired_vicare_mode == 'forcedNormal' and bedroom_needs_heat and salon_needs_heat %}
-                      La chambre et le salon sont sous leur température cible.
+                      La chambre et le salon sont sous leur consigne de démarrage.
                       Le chauffage démarre.
 
                     {% elif desired_vicare_mode == 'forcedNormal' and bedroom_needs_heat %}
-                      La chambre est sous sa température cible.
+                      La chambre est sous sa consigne de démarrage.
                       Le chauffage démarre.
 
                     {% elif desired_vicare_mode == 'forcedNormal' and salon_needs_heat %}
-                      Le salon est sous sa température cible.
+                      Le salon est sous sa consigne de démarrage.
                       Le chauffage démarre.
 
                     {% elif desired_vicare_mode == 'forcedNormal' %}
@@ -266,14 +326,13 @@ automation:
                       Le chauffage démarre.
 
                     {% else %}
-                      Aucune pièce ne demande de chauffage.
-                      On garde uniquement l'eau chaude sanitaire.
+                      Consignes atteintes (ou maison tempérée).
+                      Bascule en eau chaude sanitaire seule (DHW).
                     {% endif %}
 
-                    Chambre : {{ bedroom_temp | round(1) }}°C / cible {{ bedroom_target | float | round(1) }}°C.
                     Salon : {{ salon_temp | round(1) }}°C / cible {{ salon_target | float | round(1) }}°C.
                     Extérieur : {{ outside_temp | round(1) }}°C.
-                    
+
   - alias: Hot Water Boost End
     id: hot_water_boost_end
     mode: single
@@ -293,7 +352,7 @@ automation:
           restore_temp: "{{ states('input_number.hot_water_boost_restore_temp') | float(55) }}"
           dhw_target: "{{ states('number.vitrocrossal_300_cu3a_dhw_temperature') | float(55) }}"
 
-      - service: water_heater.set_temperature
+      - action: water_heater.set_temperature
         target:
           entity_id: water_heater.vitrocrossal_300_cu3a_domestic_hot_water
         data:
@@ -304,19 +363,56 @@ automation:
               - condition: template
                 value_template: "{{ trigger.event.event_type == 'timer.finished' }}"
             sequence:
-              - service: notify.mobile_app_iphone_de_loic
+              - action: notify.mobile_app_iphone_de_loic
                 data:
-                  title: "♨️ Boost ECS terminé"
+                  title: "☕ Boost ECS terminé"
                   message: "Retour de la cible ECS à {{ restore_temp }}°C."
 
           - conditions:
               - condition: template
                 value_template: "{{ trigger.event.event_type == 'timer.cancelled' }}"
             sequence:
-              - service: notify.mobile_app_iphone_de_loic
+              - action: notify.mobile_app_iphone_de_loic
                 data:
-                  title: "🛑 Boost ECS annulé"
+                  title: "☕ Boost ECS annulé"
                   message: "Boost stoppé manuellement. Retour de la cible ECS à {{ restore_temp }}°C."
+
+  # Détection Aération Chambre (Commenté temporairement : radiateurs débranchés)
+  # - alias: "Détection Aération Chambre"
+  #   id: detection_aeration_chambre
+  #   mode: single
+  #   trigger:
+  #     - platform: state
+  #       entity_id: binary_sensor.chute_temperature_chambre
+  #       to: "on"
+  #   action:
+  #     - action: timer.start
+  #       target:
+  #         entity_id: timer.aeration_chambre
+  #       data:
+  #         duration: "00:15:00"
+  #     - action: notify.mobile_app_iphone_de_loic
+  #       data:
+  #         title: "❄️ Aération détectée (Chambre)"
+  #         message: "Chute de température détectée dans la chambre. Chauffage suspendu pour 15 minutes."
+
+  - alias: "Détection Aération Salon"
+    id: detection_aeration_salon
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.chute_temperature_salon
+        to: "on"
+    action:
+      - action: timer.start
+        target:
+          entity_id: timer.aeration_salon
+        data:
+          duration: "00:15:00"
+      - action: notify.mobile_app_iphone_de_loic
+        data:
+          title: "❄️ Aération détectée (Salon)"
+          message: "Chute de température détectée dans le salon. Chauffage suspendu pour 15 minutes."
 
 template:
   - sensor:
@@ -332,6 +428,10 @@ template:
             mdi:fire
           {% elif mode == 'dhw' %}
             mdi:water-boiler
+          {% elif mode == 'dhwAndHeating' %}
+            mdi:radiator
+          {% elif mode == 'forcedReduced' %}
+            mdi:leaf
           {% elif mode == 'standby' %}
             mdi:power-sleep
           {% else %}
@@ -347,6 +447,10 @@ template:
             Chauffage actif
           {% elif mode == 'dhw' %}
             Eau chaude seule
+          {% elif mode == 'dhwAndHeating' %}
+            Normal (Chauffage + ECS)
+          {% elif mode == 'forcedReduced' %}
+            Réduit
           {% elif mode == 'standby' %}
             Veille
           {% elif mode %}
@@ -357,6 +461,9 @@ template:
         attributes:
           personnes_maison: "{{ states('zone.home') | int(0) }}"
           mode_vicare: "{{ state_attr('climate.vitrocrossal_300_cu3a_heating', 'active_vicare_mode') }}"
-          chambre_temp: "{{ states('sensor.thermo_1_temperature') }}"
+          # chambre_temp: "{{ states('sensor.thermo_1_temperature') }}" # Commenté : radiateurs chambre débranchés
           salon_temp: "{{ states('sensor.thermo_2_temperature') }}"
           temperature_exterieure: "{{ states('sensor.vitrocrossal_300_cu3a_outside_temperature') }}"
+          dernier_changement_mode: "{{ states('input_datetime.vicare_last_mode_change') }}"
+          # aeration_chambre: "{{ is_state('timer.aeration_chambre', 'active') }}" # Commenté : radiateurs chambre débranchés
+          aeration_salon: "{{ is_state('timer.aeration_salon', 'active') }}"

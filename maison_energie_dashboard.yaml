@@ -1,290 +1,287 @@
-title: Énergie & Gaz
+title: "Énergie & Maison"
 views:
+  ##############################################################################
+  # VUE 1 - GAZ & PERFORMANCE ÉNERGÉTIQUE
+  ##############################################################################
   - title: Gaz
     path: gaz
     icon: mdi:fire
+    type: custom:masonry-layout
+    layout:
+      width: 440
+      max_cols: 3
     cards:
       ##########################################################################
-      # LIGNE PRINCIPALE — KPIs en tête
+      # COLONNE 1 : AUJOURD'HUI & VUE D'ENSEMBLE
       ##########################################################################
-
-      - type: horizontal-stack
+      - type: vertical-stack
         cards:
-          - type: statistic
-            entity: sensor.gaz_conso_moyenne_journaliere_mois
-            period:
-              calendar:
-                period: month
-            stat_type: mean
-            name: Moy. jour
+          # KPIs en tête
+          - type: horizontal-stack
+            cards:
+              - type: custom:mushroom-entity-card
+                entity: sensor.gaz_conso_moyenne_journaliere_mois
+                name: Moy. Jour
+                icon: mdi:calendar-today
+                icon_color: amber
+                layout: vertical
 
-          - type: statistic
-            entity: sensor.gaz_cout_mois
-            period:
-              calendar:
-                period: month
-            stat_type: sum
-            name: Coût mois
+              - type: custom:mushroom-entity-card
+                entity: sensor.gaz_cout_mois
+                name: Coût Mois
+                icon: mdi:currency-eur
+                icon_color: green
+                layout: vertical
 
-          - type: statistic
-            entity: sensor.gaz_economie_cumulee_mois_eur
-            period:
-              calendar:
-                period: month
-            stat_type: sum
-            name: Économie mois
+              - type: custom:mushroom-entity-card
+                entity: sensor.gaz_statut_economie
+                name: Économie
+                icon: mdi:leaf
+                icon_color: light-green
+                layout: vertical
 
-      ##########################################################################
-      # VUE D'ENSEMBLE — Gauges + Résumé + Réglages
-      ##########################################################################
+          # Jauges Conso & Projection
+          - type: horizontal-stack
+            cards:
+              - type: gauge
+                entity: sensor.gaz_kwh_jour_effectif
+                name: Conso Aujourd'hui
+                min: 0
+                max: 80
+                needle: true
+                severity:
+                  green: 0
+                  yellow: 40
+                  red: 55
 
-      - type: grid
-        title: Vue d'ensemble
-        columns: 2
-        square: false
-        cards:
-          - type: gauge
-            entity: sensor.gaz_kwh_jour
-            name: Conso gaz aujourd'hui
-            min: 0
-            max: 80
-            needle: true
-            severity:
-              green: 0
-              yellow: 40
-              red: 55
-
+              - type: gauge
+                entity: sensor.gaz_projection_mois
+                name: Projection Mois
+                min: 0
+                max: 1800
+                needle: true
+                severity:
+                  green: 0
+                  yellow: 1200
+                  red: 1700
+          # Résumé du Jour (Pleine Largeur)
           - type: entities
-            title: Résumé jour
+            title: Résumé du Jour
             show_header_toggle: false
             entities:
-              - entity: sensor.gaz_kwh_jour
-                name: kWh aujourd'hui
-              - entity: sensor.gaz_m3_jour
-                name: Volume aujourd'hui
+              - entity: sensor.gaz_kwh_jour_effectif
+                name: Énergie estimée aujourd'hui (brûleur live)
+              - entity: sensor.gaz_m3_jour_effectif
+                name: Volume de gaz estimé
               - entity: sensor.gaz_cout_jour
-                name: Coût aujourd'hui
+                name: Dépense estimée aujourd'hui
+              - entity: sensor.gaz_kwh_hier
+                name: Conso officielle Gazpar (Hier)
+              - entity: sensor.gaz_cout_hier
+                name: Coût officiel Gazpar (Hier)
               - entity: sensor.gaz_dju_jour
-                name: DJU (froid ressenti)
+                name: DJU (Degrés-Jours Froid)
               - entity: sensor.gaz_intensite_energetique
-                name: Intensité kWh/DJU
-              - entity: sensor.gaz_statut_economie
-                name: Statut
+                name: Intensité énergétique
 
-      - type: entities
-        title: Réglages économie
-        show_header_toggle: false
-        state_color: true
-        entities:
-          - entity: input_number.gaz_price_kwh
-            name: Prix kWh gaz
-          - entity: input_number.gaz_reference_daily_kwh
-            name: Ancienne moyenne kWh/jour
-          - entity: input_number.gaz_target_daily_kwh
-            name: Objectif kWh/jour
-          - entity: input_number.dju_base_temperature
-            name: Température base DJU
-
-      ##########################################################################
-      # MINI-GRAPHS JOUR — Trend rapide sur 48h
-      ##########################################################################
-
-      - type: grid
-        title: Tendance 48h
-        columns: 2
-        square: false
-        cards:
-          - type: custom:mini-graph-card
-            name: Conso 48h
-            icon: mdi:fire
-            entities:
-              - entity: sensor.gaz_kwh_jour
-                name: kWh/jour
-            hours_to_show: 48
-            points_per_hour: 1
-            show:
-              fill: true
-              state: true
-              name: true
-              legend: false
-              extrema: true
-            color_thresholds:
-              - value: 0
-                color: "#43a047"
-              - value: 40
-                color: "#fbc02d"
-              - value: 55
-                color: "#e53935"
-
-          - type: custom:mini-graph-card
-            name: Économie % 48h
-            icon: mdi:leaf
-            entities:
-              - entity: sensor.gaz_economie_jour_pourcentage
-                name: Économie %
-            hours_to_show: 48
-            points_per_hour: 1
-            show:
-              fill: true
-              state: true
-              name: true
-              legend: false
-              extrema: true
-            color_thresholds:
-              - value: 20
-                color: "#43a047"
-              - value: 10
-                color: "#fbc02d"
-              - value: 0
-                color: "#e53935"
-
-      ##########################################################################
-      # JOURNALIER 14 JOURS — Historique détaillé
-      ##########################################################################
-
-      - type: grid
-        title: Journalier sur 14 jours
-        columns: 2
-        square: false
-        cards:
-          - type: history-graph
-            title: kWh journalier
-            hours_to_show: 336
-            entities:
-              - entity: sensor.gaz_kwh_jour
-                name: kWh jour
-
-          - type: history-graph
-            title: Volume & Coût journaliers
-            hours_to_show: 336
-            entities:
-              - entity: sensor.gaz_m3_jour
-                name: m³ jour
-              - entity: sensor.gaz_cout_jour
-                name: Coût jour
-
-      - type: grid
-        title: Performance journalière
-        columns: 2
-        square: false
-        cards:
-          - type: history-graph
-            title: Économie kWh sur 14 jours
-            hours_to_show: 336
-            entities:
-              - entity: sensor.gaz_economie_jour_kwh
-                name: Économie kWh
-              - entity: sensor.gaz_reference_daily_kwh
-                name: Référence
-
-          - type: history-graph
-            title: Économie % sur 14 jours
-            hours_to_show: 336
-            entities:
-              - entity: sensor.gaz_economie_jour_pourcentage
-                name: Économie %
-
-      - type: history-graph
-        title: DJU & Température extérieure (14 jours)
-        hours_to_show: 336
-        entities:
-          - entity: sensor.gaz_dju_jour
-            name: DJU
-          - entity: sensor.gazpar_temperature
-            name: Température ext.
-
-      ##########################################################################
-      # MENSUEL — Résumé mensuel + Gauges
-      ##########################################################################
-
-      - type: grid
-        title: Mois en cours
-        columns: 2
-        square: false
-        cards:
+          # Répartition Chauffage vs ECS (Pleine Largeur)
           - type: entities
-            title: Résumé mensuel
+            title: Répartition Chauffage vs Eau Chaude
+            show_header_toggle: false
+            state_color: true
+            entities:
+              - entity: sensor.gaz_kwh_chauffage_jour
+                name: Part Chauffage (kWh)
+              - entity: sensor.gaz_cout_chauffage_jour
+                name: Coût Chauffage estimé
+              - entity: sensor.gaz_kwh_ecs_jour
+                name: Part Eau Chaude (kWh)
+              - entity: sensor.gaz_cout_ecs_jour
+                name: Coût Eau Chaude estimé
+              - entity: sensor.gaz_part_ecs_pourcentage
+                name: Ratio Eau Chaude Sanitaire
+
+      ##########################################################################
+      # COLONNE 2 : ANALYSES & GRAPHIQUES
+      ##########################################################################
+      - type: vertical-stack
+        cards:
+          # Mini-graphs 48h
+          - type: horizontal-stack
+            cards:
+              - type: custom:mini-graph-card
+                name: Conso Gaz 48h
+                icon: mdi:fire
+                entities:
+                  - entity: sensor.gaz_kwh_jour_effectif
+                    name: kWh/jour (live)
+                hours_to_show: 48
+                points_per_hour: 1
+                show:
+                  fill: true
+                  state: true
+                  name: true
+                  legend: false
+                  extrema: true
+                color_thresholds:
+                  - value: 0
+                    color: "#43a047"
+                  - value: 40
+                    color: "#fbc02d"
+                  - value: 55
+                    color: "#e53935"
+
+              - type: custom:mini-graph-card
+                name: Économie (%) 48h
+                icon: mdi:leaf
+                entities:
+                  - entity: sensor.gaz_economie_jour_pourcentage
+                    name: Économie %
+                hours_to_show: 48
+                points_per_hour: 1
+                show:
+                  fill: true
+                  state: true
+                  name: true
+                  legend: false
+                  extrema: true
+                color_thresholds:
+                  - value: 20
+                    color: "#43a047"
+                  - value: 10
+                    color: "#fbc02d"
+                  - value: 0
+                    color: "#e53935"
+
+          # Historique 14 Jours (Pleine Largeur)
+          - type: custom:apexcharts-card
+            header:
+              show: true
+              title: Consommation Journalière sur 14 Jours
+              show_states: true
+              colorize_states: true
+            graph_span: 14d
+            span:
+              end: day
+            series:
+              - entity: sensor.gaz_kwh_jour
+                type: column
+                name: Conso Gaz (kWh)
+                color: "#ff9800"
+                group_by:
+                  func: max
+                  duration: 1d
+              - entity: sensor.gaz_reference_jour_kwh
+                type: line
+                name: Objectif Référence (kWh)
+                color: "#9e9e9e"
+                stroke_width: 2
+
+          # DJU & Météo (Pleine Largeur)
+          - type: custom:apexcharts-card
+            header:
+              show: true
+              title: DJU & Température Extérieure (14 Jours)
+              show_states: true
+              colorize_states: true
+            graph_span: 14d
+            span:
+              end: day
+            yaxis:
+              - id: first
+                show: true
+              - id: second
+                opposite: true
+                show: true
+            series:
+              - entity: sensor.gaz_dju_jour
+                type: column
+                name: DJU (Froid ressenti)
+                color: "#03a9f4"
+                yaxis_id: first
+                group_by:
+                  func: max
+                  duration: 1d
+              - entity: sensor.vitrocrossal_300_cu3a_outside_temperature
+                type: line
+                name: Sonde Extérieure (°C)
+                color: "#4caf50"
+                yaxis_id: second
+                stroke_width: 2
+
+          # Historique 12 Mois (Pleine Largeur)
+          - type: custom:apexcharts-card
+            header:
+              show: true
+              title: Historique Annuel (12 Mois)
+              show_states: true
+            graph_span: 365d
+            span:
+              end: month
+            yaxis:
+              - id: kwh
+                show: true
+              - id: eur
+                opposite: true
+                show: true
+            series:
+              - entity: sensor.gaz_kwh_mois
+                type: column
+                name: Conso mensuelle (kWh)
+                color: "#ff7043"
+                yaxis_id: kwh
+                group_by:
+                  func: max
+                  duration: 30d
+              - entity: sensor.gaz_cout_mois
+                type: line
+                name: Dépense mensuelle (€)
+                color: "#66bb6a"
+                yaxis_id: eur
+                stroke_width: 3
+                group_by:
+                  func: max
+                  duration: 30d
+
+      ##########################################################################
+      # COLONNE 3 : BILANS & PARAMETRES
+      ##########################################################################
+      - type: vertical-stack
+        cards:
+          # Bilan Mois en cours (Pleine Largeur)
+          - type: entities
+            title: Bilan du Mois en Cours
             show_header_toggle: false
             entities:
               - entity: sensor.gaz_kwh_mois
-                name: kWh ce mois
+                name: Cumul énergie consommée
               - entity: sensor.gaz_m3_mois
-                name: Volume ce mois
+                name: Cumul volume de gaz
               - entity: sensor.gaz_cout_mois
-                name: Coût ce mois
+                name: Dépense facturée ce mois
               - entity: sensor.gaz_conso_moyenne_journaliere_mois
-                name: Moyenne jour
+                name: Moyenne quotidienne
               - entity: sensor.gaz_economie_cumulee_mois_kwh
-                name: Économie cumulée kWh
+                name: Économie cumulée (kWh)
               - entity: sensor.gaz_economie_cumulee_mois_eur
-                name: Économie cumulée €
+                name: Économie cumulée (€)
 
-          - type: gauge
-            entity: sensor.gaz_projection_mois
-            name: Projection mensuelle kWh
-            min: 0
-            max: 1800
-            needle: true
-            severity:
-              green: 0
-              yellow: 1200
-              red: 1700
-
-      - type: gauge
-        entity: sensor.gaz_cout_mois
-        name: Coût gaz ce mois
-        min: 0
-        max: 200
-        needle: true
-        severity:
-          green: 0
-          yellow: 120
-          red: 170
-
-      - type: grid
-        title: Graphiques mensuels (30 jours)
-        columns: 2
-        square: false
-        cards:
-          - type: history-graph
-            title: kWh mois
-            hours_to_show: 720
-            entities:
-              - entity: sensor.gaz_kwh_mois
-                name: kWh mois
-
-          - type: history-graph
-            title: Volume & Coût mois
-            hours_to_show: 720
-            entities:
-              - entity: sensor.gaz_m3_mois
-                name: m³ mois
-              - entity: sensor.gaz_cout_mois
-                name: Coût mois
-
-      ##########################################################################
-      # ANNUEL — Conso année + Projection annuelle
-      ##########################################################################
-
-      - type: grid
-        title: Bilan annuel
-        columns: 2
-        square: false
-        cards:
+          # Bilan Annuel (Pleine Largeur)
           - type: entities
-            title: Année en cours
+            title: Bilan Annuel Global
             show_header_toggle: false
             entities:
               - entity: sensor.gaz_kwh_annee
-                name: kWh cette année
+                name: Consommation totale année
               - entity: sensor.gaz_m3_annee
-                name: Volume cette année
+                name: Volume total année
               - entity: sensor.gaz_cout_annee
-                name: Coût cette année
+                name: Dépense annuelle globale
 
+          # Jauge Conso Annuelle
           - type: gauge
             entity: sensor.gaz_kwh_annee
-            name: Conso annuelle kWh
+            name: Conso Annuelle Globale (kWh)
             min: 0
             max: 8000
             needle: true
@@ -293,47 +290,340 @@ views:
               yellow: 5000
               red: 7000
 
-      - type: gauge
-        entity: sensor.gaz_cout_annee
-        name: Coût annuel €
-        min: 0
-        max: 900
-        needle: true
-        severity:
-          green: 0
-          yellow: 550
-          red: 800
+          # Paramètres et Réglages (Pleine Largeur)
+          - type: entities
+            title: Paramètres Référentiel & Tarifs
+            show_header_toggle: false
+            state_color: true
+            entities:
+              - entity: input_number.gaz_price_kwh
+                name: Prix du kWh de gaz (€)
+              - entity: input_number.gaz_reference_daily_kwh
+                name: Référence historique (kWh/j)
+              - entity: input_number.gaz_target_daily_kwh
+                name: Objectif cible (kWh/j)
+              - entity: input_number.dju_base_temperature
+                name: Température de base DJU (°C)
 
-      - type: history-graph
-        title: Historique annuel — Conso mensuelle (12 mois)
-        hours_to_show: 8760
-        entities:
-          - entity: sensor.gaz_kwh_mois
-            name: kWh par mois
-          - entity: sensor.gaz_cout_mois
-            name: Coût par mois
-        group_by: date
-        period: month
-
+  ##############################################################################
+  # VUE 2 - TÉLÉMÉTRIE CHAUDIÈRE VITROCROSSAL 300
+  ##############################################################################
+  - title: Chaudière
+    path: chaudiere
+    icon: mdi:water-boiler
+    type: custom:masonry-layout
+    layout:
+      width: 440
+      max_cols: 2
+    cards:
       ##########################################################################
-      # PROJECTION
+      # COLONNE 1 : STATUT & ACTIVITE BRULEUR
       ##########################################################################
-
-      - type: grid
-        title: Projection
-        columns: 2
-        square: false
+      - type: vertical-stack
         cards:
-          - type: history-graph
-            title: Projection kWh mois
-            hours_to_show: 720
-            entities:
-              - entity: sensor.gaz_projection_mois
-                name: Projection kWh
+          # Diagnostics principaux
+          - type: horizontal-stack
+            cards:
+              - type: custom:mushroom-entity-card
+                entity: sensor.chauffage_statut
+                name: Chauffage
+                icon: mdi:radiator-off
+                icon_color: cyan
+                layout: vertical
 
-          - type: history-graph
-            title: Projection coût mois
-            hours_to_show: 720
+              - type: custom:mushroom-entity-card
+                entity: sensor.vitrocrossal_statut_cycle
+                name: Cycles
+                icon: mdi:fire-circle
+                icon_color: amber
+                layout: vertical
+
+              - type: custom:mushroom-entity-card
+                entity: sensor.vitrocrossal_efficacite_condensation
+                name: Condensation
+                icon: mdi:water-percent
+                icon_color: blue
+                layout: vertical
+
+          # Activité Brûleur Aujourd'hui (Grille 2x2 propre)
+          - type: grid
+            title: Activité Brûleur Aujourd'hui
+            columns: 2
+            square: false
+            cards:
+              - type: custom:mushroom-entity-card
+                entity: sensor.vitrocrossal_allumages_jour_2
+                name: Démarrages Jour
+                icon: mdi:fire
+                icon_color: deep-orange
+                layout: horizontal
+
+              - type: custom:mushroom-entity-card
+                entity: sensor.vitrocrossal_bruleur_temps_total_jour
+                name: Heures Brûleur
+                icon: mdi:clock-outline
+                icon_color: light-blue
+                layout: horizontal
+
+              - type: custom:mushroom-entity-card
+                entity: sensor.vitrocrossal_duree_moyenne_cycle
+                name: Durée Moyenne
+                icon: mdi:timer-outline
+                icon_color: green
+                layout: horizontal
+
+              - type: custom:mushroom-entity-card
+                entity: sensor.vitrocrossal_allumages_derniere_heure
+                name: Allumages (Dern. 1h)
+                icon: mdi:counter
+                icon_color: purple
+                layout: horizontal
+
+          # Jauges Modulation & Départ
+          - type: horizontal-stack
+            cards:
+              - type: gauge
+                entity: sensor.vitrocrossal_300_cu3a_burner_modulation
+                name: Modulation Brûleur
+                min: 0
+                max: 100
+                unit: "%"
+                needle: true
+                severity:
+                  green: 10
+                  yellow: 60
+                  red: 85
+
+              - type: gauge
+                entity: sensor.vitrocrossal_300_cu3a_supply_temperature
+                name: Départ Chaudière
+                min: 20
+                max: 85
+                unit: "°C"
+                needle: true
+                severity:
+                  green: 20
+                  yellow: 55
+                  red: 78
+
+      ##########################################################################
+      # COLONNE 2 : REGULATION & COURBES
+      ##########################################################################
+      - type: vertical-stack
+        cards:
+          # État Sanitaire & Pompes
+          - type: entities
+            title: État Sanitaire & Pompes
+            show_header_toggle: false
             entities:
-              - entity: sensor.gaz_projection_cout_mois
-                name: Projection coût
+              - entity: sensor.vitrocrossal_300_cu3a_dhw_storage_temperature
+                name: Ballon ECS
+              - entity: binary_sensor.vitrocrossal_300_cu3a_dhw_charging
+                name: Charge ECS active
+              - entity: binary_sensor.vitrocrossal_300_cu3a_circulation_pump
+                name: Circulateur Chauffage
+              - entity: binary_sensor.vitrocrossal_300_cu3a_burner
+                name: Flamme Brûleur
+              - entity: sensor.vitrocrossal_bruleur_temps_ecs_jour
+                name: Durée de chauffe ECS du jour
+
+          # Réglages Loi d'Eau ViCare (Pleine Largeur)
+          - type: entities
+            title: Réglages Courbe de Chauffe (ViCare)
+            show_header_toggle: false
+            entities:
+              - entity: number.vitrocrossal_300_cu3a_heating_curve_slope
+                name: Pente courbe (Loi d'eau)
+              - entity: number.vitrocrossal_300_cu3a_heating_curve_shift
+                name: Parallèle courbe (°C)
+              - entity: number.vitrocrossal_300_cu3a_comfort_temperature
+                name: Consigne Confort (°C)
+              - entity: number.vitrocrossal_300_cu3a_reduced_temperature
+                name: Consigne Réduit (°C)
+              - entity: number.vitrocrossal_300_cu3a_dhw_temperature
+                name: Consigne Ballon ECS (°C)
+
+          # Graphique 24h Températures
+          - type: custom:mini-graph-card
+            name: Températures Chaudière (Dernières 24h)
+            hours_to_show: 24
+            points_per_hour: 4
+            line_width: 3
+            entities:
+              - entity: sensor.vitrocrossal_300_cu3a_supply_temperature
+                name: Départ
+                color: "#ff5722"
+              - entity: sensor.vitrocrossal_300_cu3a_boiler_temperature
+                name: Corps de chauffe
+                color: "#f44336"
+              - entity: sensor.vitrocrossal_300_cu3a_dhw_storage_temperature
+                name: Ballon ECS
+                color: "#2196f3"
+              - entity: sensor.vitrocrossal_300_cu3a_outside_temperature
+                name: Extérieur
+                color: "#4caf50"
+
+  ##############################################################################
+  # VUE 3 - VÉHICULE ÉLECTRIQUE (TESLA & WALLBOX)
+  ##############################################################################
+  - title: Véhicule Électrique
+    path: ve
+    icon: mdi:car-electric
+    type: custom:masonry-layout
+    layout:
+      width: 440
+      max_cols: 2
+    cards:
+      ##########################################################################
+      # COLONNE 1 : STATUT & SESSION WALLBOX
+      ##########################################################################
+      - type: vertical-stack
+        cards:
+          # Bandeau Principal
+          - type: horizontal-stack
+            cards:
+              - type: custom:mushroom-entity-card
+                entity: sensor.ve_statut_recharge
+                name: Recharge
+                icon: mdi:ev-station
+                icon_color: green
+                layout: vertical
+
+              - type: custom:mushroom-entity-card
+                entity: sensor.ve_batterie_tesla
+                name: Batterie
+                icon: mdi:battery-charging
+                icon_color: light-green
+                layout: vertical
+
+              - type: custom:mushroom-entity-card
+                entity: sensor.ve_autonomie_tesla
+                name: Autonomie
+                icon: mdi:speedometer
+                icon_color: blue
+                layout: vertical
+
+              - type: custom:mushroom-template-card
+                primary: Réveil
+                secondary: Tesla
+                icon: mdi:car-wireless
+                icon_color: purple
+                tap_action:
+                  action: call-service
+                  service: button.press
+                  target:
+                    entity_id: button.tesla_model_3_highland_wake
+                layout: vertical          # Bannière Cagnotte Heures Creuses
+          - type: horizontal-stack
+            cards:
+              - type: custom:mushroom-template-card
+                primary: >-
+                  {% if is_state('binary_sensor.ve_heures_creuses_recharge', 'on') %}
+                    🟢 Maison en Heures Creuses (0,1566 €/kWh)
+                  {% else %}
+                    🟡 Maison en Heures Pleines (0,2111 €/kWh)
+                  {% endif %}
+                secondary: >-
+                  Voiture seule : 0,08 €/kWh net garanti (Cagnotte Octopus)
+                icon: mdi:piggy-bank
+                icon_color: >-
+                  {% if is_state('binary_sensor.ve_heures_creuses_recharge', 'on') %}
+                    green
+                  {% else %}
+                    amber
+                  {% endif %}
+                layout: horizontal
+
+              - type: custom:mushroom-entity-card
+                entity: sensor.ve_economie_session_recharge
+                name: Gain Cagnotte Voiture
+                icon: mdi:cash-plus
+                icon_color: green
+                layout: horizontal
+
+          # Jauge Puissance
+          - type: gauge
+            entity: sensor.wallbox_pulsar_max_sn_1331158_charging_power
+            name: Puissance de Recharge Instantanée
+            min: 0
+            max: 7.4
+            unit: "kW"
+            needle: true
+            severity:
+              green: 1
+              yellow: 3
+              red: 6
+          # Données Session Wallbox (Pleine Largeur)
+          - type: entities
+            title: Données de la Session Wallbox
+            show_header_toggle: false
+            entities:
+              - entity: sensor.wallbox_pulsar_max_sn_1331158_status_description
+                name: Statut Wallbox
+              - entity: sensor.wallbox_pulsar_max_sn_1331158_added_energy
+                name: Énergie totale injectée
+              - entity: sensor.wallbox_pulsar_max_sn_1331158_added_range
+                name: Kilomètres ajoutés
+              - entity: sensor.ve_cout_session_recharge
+                name: Coût net (Voiture seule à 0,08 €/kWh)
+              - entity: sensor.ve_montant_facture_brut
+                name: Facturé initialement (Tarif Maison HC 0,1566 €)
+              - entity: sensor.ve_economie_session_recharge
+                name: Cashback reversé cagnotte (Voiture uniquement)
+              - entity: sensor.ve_economie_vs_heures_pleines
+                name: Économie totale vs tarif HP maison
+              - entity: lock.wallbox_pulsar_max_sn_1331158_lock
+                name: Verrouillage physique Wallbox
+
+      # COLONNE 2 : ETAT TESLA & TARIFICATION
+      ##########################################################################
+      - type: vertical-stack
+        cards:
+          # Connexion & Câble Tesla
+          - type: entities
+            title: Connexion & État de Charge Tesla
+            show_header_toggle: false
+            entities:
+              - entity: sensor.ve_cable_statut
+                name: Connexion câble
+              - entity: cover.tesla_model_3_highland_charge_port_door
+                name: Trappe de charge
+              - entity: sensor.ve_fin_de_charge
+                name: Fin de charge estimée
+              - entity: sensor.ve_tension_reseau
+                name: Tension réseau
+              - entity: sensor.ve_intensite_charge
+                name: Intensité délivrée
+
+          # Confort & Sécurité Tesla
+          - type: entities
+            title: Véhicule & Sécurité Tesla
+            show_header_toggle: false
+            entities:
+              - entity: sensor.ve_verrouillage_voiture
+                name: Verrouillage voiture
+              - entity: sensor.ve_emplacement_voiture
+                name: Emplacement du véhicule
+              - entity: sensor.ve_temperature_interieure
+                name: Température intérieure
+              - entity: sensor.ve_temperature_exterieure
+                name: Température extérieure
+              - entity: sensor.ve_climatisation_statut
+                name: Climatisation habitacle
+              - entity: sensor.ve_mode_sentinelle_statut
+                name: Mode Sentinelle
+          # Contrat Intelligent Octopus Fixe
+          - type: entities
+            title: Contrat Intelligent Octopus (PRM 05685094046381)
+            show_header_toggle: false
+            state_color: true
+            entities:
+              - entity: input_number.ve_prix_kwh_heures_creuses
+                name: Tarif Maison Heures Creuses (0,1566 €/kWh)
+              - entity: input_number.ve_prix_kwh_heures_pleines
+                name: Tarif Maison Heures Pleines (0,2111 €/kWh)
+              - entity: input_number.ve_prix_kwh_cible_recharge
+                name: Tarif Voiture seule après Cagnotte (0,0800 €/kWh)
+              - entity: binary_sensor.ve_heures_creuses_recharge
+                name: Plage Heures Creuses Maison & VE (21H22 - 5H22)
+
