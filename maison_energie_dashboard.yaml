@@ -518,7 +518,7 @@ views:
     type: custom:masonry-layout
     layout:
       width: 440
-      max_cols: 2
+      max_cols: 3
     cards:
       ##########################################################################
       # COLONNE 1 : STATUT & SESSION WALLBOX
@@ -559,7 +559,9 @@ views:
                   service: button.press
                   target:
                     entity_id: button.tesla_model_3_highland_wake
-                layout: vertical          # Bannière Cagnotte Heures Creuses
+                layout: vertical
+
+          # Bannière Cagnotte Heures Creuses
           - type: horizontal-stack
             cards:
               - type: custom:mushroom-template-card
@@ -599,6 +601,7 @@ views:
               green: 1
               yellow: 3
               red: 6
+
           # Données Session Wallbox (Pleine Largeur)
           - type: entities
             title: Données de la Session Wallbox
@@ -621,10 +624,6 @@ views:
               - entity: lock.wallbox_pulsar_max_sn_1331158_lock
                 name: Verrouillage physique Wallbox
 
-      # COLONNE 2 : ETAT TESLA & TARIFICATION
-      ##########################################################################
-      - type: vertical-stack
-        cards:
           # Connexion & Câble Tesla
           - type: entities
             title: Connexion & État de Charge Tesla
@@ -640,6 +639,64 @@ views:
                 name: Tension réseau
               - entity: sensor.ve_intensite_charge
                 name: Intensité délivrée
+
+      ##########################################################################
+      # COLONNE 2 : ANALYSES & GRAPHIQUES HISTORIQUES
+      ##########################################################################
+      - type: vertical-stack
+        cards:
+          # Recharges Journalières 14 Jours
+          - type: custom:apexcharts-card
+            header:
+              show: true
+              title: Recharges Journalières (14 Jours)
+              show_states: true
+              colorize_states: true
+            graph_span: 14d
+            span:
+              end: day
+            series:
+              - entity: sensor.wallbox_pulsar_max_sn_1331158_added_energy
+                type: column
+                name: Recharge VE (kWh)
+                color: "#00e676"
+                statistics:
+                  type: change
+                  period: day
+
+          # Historique Annuel (12 Mois)
+          - type: custom:apexcharts-card
+            header:
+              show: true
+              title: Historique Annuel (12 Mois)
+              show_states: true
+            graph_span: 365d
+            span:
+              end: month
+            yaxis:
+              - id: kwh
+                show: true
+              - id: eur
+                opposite: true
+                show: true
+            series:
+              - entity: sensor.wallbox_pulsar_max_sn_1331158_added_energy
+                type: column
+                name: Énergie rechargée (kWh)
+                color: "#03a9f4"
+                yaxis_id: kwh
+                statistics:
+                  type: change
+                  period: month
+              - entity: sensor.ve_cout_mois
+                type: line
+                name: Dépense mensuelle nette (€)
+                color: "#4caf50"
+                yaxis_id: eur
+                stroke_width: 3
+                group_by:
+                  func: max
+                  duration: 30d
 
           # Confort & Sécurité Tesla
           - type: entities
@@ -658,9 +715,10 @@ views:
                 name: Climatisation habitacle
               - entity: sensor.ve_mode_sentinelle_statut
                 name: Mode Sentinelle
+
           # Contrat Intelligent Octopus Fixe
           - type: entities
-            title: Contrat Intelligent Octopus (PRM 05685094046381)
+            title: Contrat Intelligent Octopus Energy
             show_header_toggle: false
             state_color: true
             entities:
@@ -672,4 +730,105 @@ views:
                 name: Tarif Voiture seule après Cagnotte (0,0800 €/kWh)
               - entity: binary_sensor.ve_heures_creuses_recharge
                 name: Plage Heures Creuses Maison & VE (21H22 - 5H22)
+
+      ##########################################################################
+      # COLONNE 3 : BILANS & STATISTIQUES (MOIS EN COURS, MOIS DERNIER, ANNUEL)
+      ##########################################################################
+      - type: vertical-stack
+        cards:
+          # KPIs en tête
+          - type: horizontal-stack
+            cards:
+              - type: custom:mushroom-entity-card
+                entity: sensor.ve_kwh_mois
+                name: Ce Mois-ci
+                icon: mdi:calendar-month
+                icon_color: blue
+                layout: vertical
+
+              - type: custom:mushroom-entity-card
+                entity: sensor.ve_kwh_mois_dernier
+                name: Mois Dernier
+                icon: mdi:calendar-arrow-left
+                icon_color: cyan
+                layout: vertical
+
+              - type: custom:mushroom-entity-card
+                entity: sensor.ve_kwh_annee
+                name: Cette Année
+                icon: mdi:calendar-star
+                icon_color: amber
+                layout: vertical
+
+          # Bilan Mois en cours (Pleine Largeur)
+          - type: entities
+            title: Bilan du Mois en Cours
+            show_header_toggle: false
+            entities:
+              - entity: sensor.ve_kwh_mois
+                name: Cumul énergie rechargée
+              - entity: sensor.ve_km_mois
+                name: Kilomètres restitués
+              - entity: sensor.ve_cout_mois
+                name: Dépense nette garantie (0,08 €/kWh)
+              - entity: sensor.ve_montant_brut_mois
+                name: Facturation brute initiale (HC 0,1566 €)
+              - entity: sensor.ve_economie_cagnotte_mois
+                name: Cashback reversé cagnotte Octopus
+              - entity: sensor.ve_economie_vs_hp_mois
+                name: Économie totale vs tarif HP maison
+              - entity: sensor.ve_conso_moyenne_jour_mois
+                name: Moyenne quotidienne
+              - entity: sensor.ve_projection_mois
+                name: Projection conso fin de mois
+              - entity: sensor.ve_projection_cout_mois
+                name: Projection dépense fin de mois
+
+          # Bilan Mois Dernier (Pleine Largeur)
+          - type: entities
+            title: Bilan du Mois Dernier
+            show_header_toggle: false
+            entities:
+              - entity: sensor.ve_kwh_mois_dernier
+                name: Énergie consommée
+              - entity: sensor.ve_km_mois_dernier
+                name: Kilomètres ajoutés
+              - entity: sensor.ve_cout_mois_dernier
+                name: Coût net garanti payé
+              - entity: sensor.ve_montant_brut_mois_dernier
+                name: Facturé initialement (contrat HC)
+              - entity: sensor.ve_economie_cagnotte_mois_dernier
+                name: Cashback cagnotte reversé
+              - entity: sensor.ve_economie_vs_hp_mois_dernier
+                name: Économie totale vs tarif HP maison
+
+          # Bilan Annuel (Pleine Largeur)
+          - type: entities
+            title: Bilan Annuel Global
+            show_header_toggle: false
+            entities:
+              - entity: sensor.ve_kwh_annee
+                name: Consommation totale année
+              - entity: sensor.ve_km_annee
+                name: Kilomètres totaux restitués
+              - entity: sensor.ve_cout_annee
+                name: Dépense annuelle nette garantie
+              - entity: sensor.ve_montant_brut_annee
+                name: Facturation brute annuelle
+              - entity: sensor.ve_economie_cagnotte_annee
+                name: Cagnotte annuelle cumulée
+              - entity: sensor.ve_economie_vs_hp_annee
+                name: Économie annuelle vs tarif HP maison
+
+          # Jauge Conso Annuelle
+          - type: gauge
+            entity: sensor.ve_kwh_annee
+            name: Conso Annuelle Rechargée (kWh)
+            min: 0
+            max: 3500
+            needle: true
+            severity:
+              green: 0
+              yellow: 2000
+              red: 3000
 

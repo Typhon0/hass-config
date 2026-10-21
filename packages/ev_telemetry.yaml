@@ -3,7 +3,7 @@
 # Contrat : Offre Intelligent Octopus Fixe (Option HP / HC 6 kVA)
 # - Heures Creuses : 21H22 - 5H22 (0,1566 €/kWh TTC)
 # - Heures Pleines : 0,2111 €/kWh TTC
-# - Abonnement : 16,01 €/mois TTC | PRM : 05685094046381
+# - Abonnement : 16,01 €/mois TTC
 # - Recharge VE Intelligent Octopus : 0,0800 €/kWh TTC garanti via cagnotte
 #   (Différence reversée chaque mois en cashback dans la cagnotte Octopus)
 ###############################################################################
@@ -38,6 +38,53 @@ input_number:
     unit_of_measurement: "€/kWh"
     icon: mdi:piggy-bank
     initial: 0.0800
+
+###############################################################################
+# COMPTEURS JOUR / MOIS / ANNÉE (RECHARGE WALLBOX)
+###############################################################################
+
+utility_meter:
+  ve_kwh_jour:
+    source: sensor.wallbox_pulsar_max_sn_1331158_added_energy
+    name: "VE kWh Jour"
+    unique_id: ve_kwh_jour
+    cycle: daily
+    periodically_resetting: true
+
+  ve_kwh_mois:
+    source: sensor.wallbox_pulsar_max_sn_1331158_added_energy
+    name: "VE kWh Mois"
+    unique_id: ve_kwh_mois
+    cycle: monthly
+    periodically_resetting: true
+
+  ve_kwh_annee:
+    source: sensor.wallbox_pulsar_max_sn_1331158_added_energy
+    name: "VE kWh Année"
+    unique_id: ve_kwh_annee
+    cycle: yearly
+    periodically_resetting: true
+
+  ve_km_jour:
+    source: sensor.wallbox_pulsar_max_sn_1331158_added_range
+    name: "VE km Jour"
+    unique_id: ve_km_jour
+    cycle: daily
+    periodically_resetting: true
+
+  ve_km_mois:
+    source: sensor.wallbox_pulsar_max_sn_1331158_added_range
+    name: "VE km Mois"
+    unique_id: ve_km_mois
+    cycle: monthly
+    periodically_resetting: true
+
+  ve_km_annee:
+    source: sensor.wallbox_pulsar_max_sn_1331158_added_range
+    name: "VE km Année"
+    unique_id: ve_km_annee
+    cycle: yearly
+    periodically_resetting: true
 
 template:
   - binary_sensor:
@@ -317,6 +364,186 @@ template:
           {% else %}
             Maison
           {% endif %}
+
+      ##########################################################################
+      # BILANS & STATISTIQUES MOIS EN COURS / MOIS DERNIER / ANNUEL
+      ##########################################################################
+      - name: "VE kWh Mois Dernier"
+        unique_id: ve_kwh_month_previous
+        unit_of_measurement: "kWh"
+        device_class: energy
+        icon: mdi:calendar-arrow-left
+        state: >
+          {% set lp = state_attr('sensor.ve_kwh_mois', 'last_period') | float(0) %}
+          {% if lp > 0 %}
+            {{ lp | round(1) }}
+          {% else %}
+            166.2
+          {% endif %}
+
+      - name: "VE km Mois Dernier"
+        unique_id: ve_km_month_previous
+        unit_of_measurement: "km"
+        icon: mdi:calendar-arrow-left
+        state: >
+          {% set lp = state_attr('sensor.ve_km_mois', 'last_period') | float(0) %}
+          {% if lp > 0 %}
+            {{ lp | round(0) }}
+          {% else %}
+            1382
+          {% endif %}
+
+      # Coûts nets garantis (0,08 €/kWh Intelligent Octopus)
+      - name: "VE Coût Mois"
+        unique_id: ve_cost_month_eur
+        unit_of_measurement: "€"
+        icon: mdi:currency-eur
+        state: >
+          {% set kwh = states('sensor.ve_kwh_mois') | float(0) %}
+          {% set price = states('input_number.ve_prix_kwh_cible_recharge') | float(0.08) %}
+          {{ (kwh * price) | round(2) }}
+
+      - name: "VE Coût Mois Dernier"
+        unique_id: ve_cost_month_previous_eur
+        unit_of_measurement: "€"
+        icon: mdi:currency-eur
+        state: >
+          {% set kwh = states('sensor.ve_kwh_mois_dernier') | float(0) %}
+          {% set price = states('input_number.ve_prix_kwh_cible_recharge') | float(0.08) %}
+          {{ (kwh * price) | round(2) }}
+
+      - name: "VE Coût Année"
+        unique_id: ve_cost_year_eur
+        unit_of_measurement: "€"
+        icon: mdi:currency-eur
+        state: >
+          {% set kwh = states('sensor.ve_kwh_annee') | float(0) %}
+          {% set price = states('input_number.ve_prix_kwh_cible_recharge') | float(0.08) %}
+          {{ (kwh * price) | round(2) }}
+
+      # Montants facturés bruts au tarif Heures Creuses (0,1566 €/kWh)
+      - name: "VE Montant Brut Mois"
+        unique_id: ve_invoiced_brut_month_eur
+        unit_of_measurement: "€"
+        icon: mdi:file-document-outline
+        state: >
+          {% set kwh = states('sensor.ve_kwh_mois') | float(0) %}
+          {% set price = states('input_number.ve_prix_kwh_heures_creuses') | float(0.1566) %}
+          {{ (kwh * price) | round(2) }}
+
+      - name: "VE Montant Brut Mois Dernier"
+        unique_id: ve_invoiced_brut_month_previous_eur
+        unit_of_measurement: "€"
+        icon: mdi:file-document-outline
+        state: >
+          {% set kwh = states('sensor.ve_kwh_mois_dernier') | float(0) %}
+          {% set price = states('input_number.ve_prix_kwh_heures_creuses') | float(0.1566) %}
+          {{ (kwh * price) | round(2) }}
+
+      - name: "VE Montant Brut Année"
+        unique_id: ve_invoiced_brut_year_eur
+        unit_of_measurement: "€"
+        icon: mdi:file-document-outline
+        state: >
+          {% set kwh = states('sensor.ve_kwh_annee') | float(0) %}
+          {% set price = states('input_number.ve_prix_kwh_heures_creuses') | float(0.1566) %}
+          {{ (kwh * price) | round(2) }}
+
+      # Économies Cagnotte Octopus (Cashback reversé)
+      - name: "VE Économie Cagnotte Mois"
+        unique_id: ve_saving_cagnotte_month_eur
+        unit_of_measurement: "€"
+        icon: mdi:piggy-bank
+        state: >
+          {% set brut = states('sensor.ve_montant_brut_mois') | float(0) %}
+          {% set net = states('sensor.ve_cout_mois') | float(0) %}
+          {{ ([0, (brut - net)] | max) | round(2) }}
+
+      - name: "VE Économie Cagnotte Mois Dernier"
+        unique_id: ve_saving_cagnotte_month_previous_eur
+        unit_of_measurement: "€"
+        icon: mdi:piggy-bank
+        state: >
+          {% set brut = states('sensor.ve_montant_brut_mois_dernier') | float(0) %}
+          {% set net = states('sensor.ve_cout_mois_dernier') | float(0) %}
+          {{ ([0, (brut - net)] | max) | round(2) }}
+
+      - name: "VE Économie Cagnotte Année"
+        unique_id: ve_saving_cagnotte_year_eur
+        unit_of_measurement: "€"
+        icon: mdi:piggy-bank
+        state: >
+          {% set brut = states('sensor.ve_montant_brut_annee') | float(0) %}
+          {% set net = states('sensor.ve_cout_annee') | float(0) %}
+          {{ ([0, (brut - net)] | max) | round(2) }}
+
+      # Économies vs Heures Pleines (0,2111 €/kWh)
+      - name: "VE Économie vs HP Mois"
+        unique_id: ve_saving_vs_hp_month_eur
+        unit_of_measurement: "€"
+        icon: mdi:cash-plus
+        state: >
+          {% set kwh = states('sensor.ve_kwh_mois') | float(0) %}
+          {% set net = states('sensor.ve_cout_mois') | float(0) %}
+          {% set price_hp = states('input_number.ve_prix_kwh_heures_pleines') | float(0.2111) %}
+          {{ ([0, ((kwh * price_hp) - net)] | max) | round(2) }}
+
+      - name: "VE Économie vs HP Mois Dernier"
+        unique_id: ve_saving_vs_hp_month_previous_eur
+        unit_of_measurement: "€"
+        icon: mdi:cash-plus
+        state: >
+          {% set kwh = states('sensor.ve_kwh_mois_dernier') | float(0) %}
+          {% set net = states('sensor.ve_cout_mois_dernier') | float(0) %}
+          {% set price_hp = states('input_number.ve_prix_kwh_heures_pleines') | float(0.2111) %}
+          {{ ([0, ((kwh * price_hp) - net)] | max) | round(2) }}
+
+      - name: "VE Économie vs HP Année"
+        unique_id: ve_saving_vs_hp_year_eur
+        unit_of_measurement: "€"
+        icon: mdi:cash-plus
+        state: >
+          {% set kwh = states('sensor.ve_kwh_annee') | float(0) %}
+          {% set net = states('sensor.ve_cout_annee') | float(0) %}
+          {% set price_hp = states('input_number.ve_prix_kwh_heures_pleines') | float(0.2111) %}
+          {{ ([0, ((kwh * price_hp) - net)] | max) | round(2) }}
+
+      # Moyenne et projections
+      - name: "VE Conso Moyenne Jour Mois"
+        unique_id: ve_daily_avg_month
+        unit_of_measurement: "kWh/j"
+        icon: mdi:calendar-today
+        state: >
+          {% set month = states('sensor.ve_kwh_mois') | float(0) %}
+          {% set day = now().day | float(1) %}
+          {% if day > 0 %}
+            {{ (month / day) | round(1) }}
+          {% else %}
+            0
+          {% endif %}
+
+      - name: "VE Projection Mois"
+        unique_id: ve_month_projection_kwh
+        unit_of_measurement: "kWh"
+        icon: mdi:chart-line
+        state: >
+          {% set month_kwh = states('sensor.ve_kwh_mois') | float(0) %}
+          {% set day = now().day | float(1) %}
+          {% set days_in_month = 31 %}
+          {% if day > 0 %}
+            {{ ((month_kwh / day) * days_in_month) | round(1) }}
+          {% else %}
+            0
+          {% endif %}
+
+      - name: "VE Projection Coût Mois"
+        unique_id: ve_month_projection_cost_eur
+        unit_of_measurement: "€"
+        icon: mdi:currency-eur
+        state: >
+          {% set projected_kwh = states('sensor.ve_projection_mois') | float(0) %}
+          {% set price = states('input_number.ve_prix_kwh_cible_recharge') | float(0.08) %}
+          {{ (projected_kwh * price) | round(2) }}
 
 automation:
   - alias: "VE Notification Fin de Recharge"

@@ -6,6 +6,35 @@ homeassistant:
     schedule.schedule_chauffage_chambre:
       friendly_name: "Planning Chauffage Chambre"
       icon: "mdi:calendar-clock"
+    schedule.schedule_eau_chaude:
+      friendly_name: "Planning Eau Chaude Sanitaire"
+      icon: "mdi:water-boiler"
+
+schedule:
+  schedule_eau_chaude:
+    name: "Planning Eau Chaude Sanitaire"
+    icon: "mdi:water-boiler"
+    monday:
+      - from: "19:00:00"
+        to: "23:00:00"
+    tuesday:
+      - from: "19:00:00"
+        to: "23:00:00"
+    wednesday:
+      - from: "19:00:00"
+        to: "23:00:00"
+    thursday:
+      - from: "19:00:00"
+        to: "23:00:00"
+    friday:
+      - from: "19:00:00"
+        to: "23:00:00"
+    saturday:
+      - from: "19:00:00"
+        to: "23:00:00"
+    sunday:
+      - from: "19:00:00"
+        to: "23:00:00"
 
 input_number:
   heating_chambre_sleep:
@@ -154,10 +183,13 @@ automation:
           - zone.home
           - schedule.schedule_chauffage_chambre
           - schedule.schedule_chauffage_salon
+          - schedule.schedule_eau_chaude
+          - timer.hot_water_boost
           - sensor.thermo_1_temperature
           - sensor.thermo_2_temperature
           - timer.aeration_chambre
           - timer.aeration_salon
+          - binary_sensor.vitrocrossal_300_cu3a_dhw_charging
       - platform: time_pattern
         minutes: "/10"
       - platform: homeassistant
@@ -169,9 +201,6 @@ automation:
           - condition: state
             entity_id: climate.vitrocrossal_300_cu3a_heating
             state: unavailable
-          - condition: state
-            entity_id: climate.vitrocrossal_300_cu3a_heating
-            state: unknown
 
     action:
       - variables:
@@ -183,7 +212,11 @@ automation:
           salon_temp: "{{ states('sensor.thermo_2_temperature') | float(0) }}"
           bedroom_schedule_on: "{{ is_state('schedule.schedule_chauffage_chambre', 'on') }}"
           salon_schedule_on: "{{ is_state('schedule.schedule_chauffage_salon', 'on') }}"
-          vicare_mode_current: "{{ state_attr('climate.vitrocrossal_300_cu3a_heating', 'active_vicare_mode') }}"
+          ecs_schedule_on: "{{ is_state('schedule.schedule_eau_chaude', 'on') }}"
+          ecs_boost_on: "{{ is_state('timer.hot_water_boost', 'active') }}"
+          dhw_is_charging: "{{ is_state('binary_sensor.vitrocrossal_300_cu3a_dhw_charging', 'on') }}"
+          ecs_active: "{{ (ecs_schedule_on or ecs_boost_on) and someone_home }}"
+          vicare_mode_current: "{{ state_attr('climate.vitrocrossal_300_cu3a_heating', 'active_vicare_mode') | default('standby', true) }}"
           thermostat1_target_current: "{{ state_attr('climate.thermostat1', 'temperature') | float(0) }}"
           thermostat1_hvac_current: "{{ states('climate.thermostat1') }}"
           deadband: 0.5
@@ -243,7 +276,14 @@ automation:
             }}
 
           any_room_needs_heat: "{{ bedroom_needs_heat or salon_needs_heat }}"
-          desired_vicare_mode: "{{ 'forcedNormal' if any_room_needs_heat else 'dhw' }}"
+          desired_vicare_mode: >-
+            {% if any_room_needs_heat %}
+              forcedNormal
+            {% elif ecs_active or dhw_is_charging %}
+              dhw
+            {% else %}
+              standby
+            {% endif %}
           last_vicare_change: "{{ states('input_datetime.vicare_last_mode_change') }}"
           seconds_since_change: >-
             {{
@@ -254,12 +294,17 @@ automation:
           can_change_vicare_mode: >-
             {% if not someone_home %}
               true
-            {% elif is_heating_now and desired_vicare_mode == 'dhw' %}
+            {% elif is_heating_now and desired_vicare_mode in ['dhw', 'standby'] %}
               {# Pour couper le chauffage, attendre au moins 15 min (900s) de chauffe continue #}
               {{ seconds_since_change | float(9999) >= 900 }}
-            {% else %}
+            {% elif desired_vicare_mode == 'forcedNormal' %}
               {# Pour démarrer le chauffage après un arrêt, attendre au moins 10 min (600s) anti-rebond #}
               {{ seconds_since_change | float(9999) >= 600 }}
+            {% elif vicare_mode_current == 'dhw' and desired_vicare_mode == 'standby' and dhw_is_charging %}
+              {# Ne pas basculer en veille si une charge ECS est en cours de finition #}
+              false
+            {% else %}
+              true
             {% endif %}
 
           # Consigne TRV : débridée (+2°C) en demande pour garder le clapet 100% ouvert et éviter la surchauffe chaudière
@@ -302,7 +347,8 @@ automation:
 
       # 2. Gestion chaudière
       # forcedNormal = chauffage actif
-      # dhw = ECS seule, donc parfait quand aucune pièce ne demande du chauffage
+      # dhw = ECS autorisée (plage 19h-23h ou boost ou charge en cours)
+      # standby = veille complète (nuit ou journée hors plage ECS, maintien antigel actif)
       - choose:
           - conditions:
               - condition: template
@@ -320,52 +366,56 @@ automation:
                 data:
                   timestamp: "{{ now().timestamp() }}"
 
-              - action: notify.mobile_app_iphone_de_loic
-                data:
-                  title: >-
-                    {% if not someone_home %}
-                      🏠 Passage en absence
-                    {% elif desired_vicare_mode == 'forcedNormal' and bedroom_needs_heat and salon_needs_heat %}
-                      🔥 Chambre et salon en demande
-                    {% elif desired_vicare_mode == 'forcedNormal' and bedroom_needs_heat %}
-                      🔥 Chambre en demande
-                    {% elif desired_vicare_mode == 'forcedNormal' and salon_needs_heat %}
-                      🔥 Salon en demande
-                    {% elif desired_vicare_mode == 'forcedNormal' %}
-                      🔥 Chauffage lancé
-                    {% else %}
-                      🌡️ Température atteinte
-                    {% endif %}
-                  message: >-
-                    {% if not someone_home %}
-                      Plus personne n'est à la maison.
-                      Passage en mode absence :
-                      chauffage coupé, eau chaude conservée.
+              - choose:
+                  - conditions:
+                      - condition: template
+                        value_template: >-
+                          {{
+                            desired_vicare_mode == 'forcedNormal'
+                            or (vicare_mode_current == 'forcedNormal' and desired_vicare_mode in ['dhw', 'standby'])
+                            or (not someone_home)
+                          }}
+                    sequence:
+                      - action: notify.mobile_app_iphone_de_loic
+                        data:
+                          title: >-
+                            {% if not someone_home %}
+                              🏠 Passage en absence
+                            {% elif desired_vicare_mode == 'forcedNormal' and bedroom_needs_heat and salon_needs_heat %}
+                              🔥 Chambre et salon en demande
+                            {% elif desired_vicare_mode == 'forcedNormal' and bedroom_needs_heat %}
+                              🔥 Chambre en demande
+                            {% elif desired_vicare_mode == 'forcedNormal' and salon_needs_heat %}
+                              🔥 Salon en demande
+                            {% elif desired_vicare_mode == 'forcedNormal' %}
+                              🔥 Chauffage lancé
+                            {% else %}
+                              🌡️ Température atteinte
+                            {% endif %}
+                          message: >-
+                            {% if not someone_home %}
+                              Plus personne n'est à la maison.
+                              Passage en veille chaudière.
+                            {% elif desired_vicare_mode == 'forcedNormal' and bedroom_needs_heat and salon_needs_heat %}
+                              La chambre et le salon sont sous leur consigne de démarrage.
+                              Le chauffage démarre.
+                            {% elif desired_vicare_mode == 'forcedNormal' and bedroom_needs_heat %}
+                              La chambre est sous sa consigne de démarrage.
+                              Le chauffage démarre.
+                            {% elif desired_vicare_mode == 'forcedNormal' and salon_needs_heat %}
+                              Le salon est sous sa consigne de démarrage.
+                              Le chauffage démarre.
+                            {% elif desired_vicare_mode == 'forcedNormal' %}
+                              Une pièce a demandé du chauffage.
+                              Le chauffage démarre.
+                            {% else %}
+                              Consignes atteintes. Le chauffage s'éteint.
+                              Mode chaudière : {{ desired_vicare_mode }}.
+                            {% endif %}
 
-                    {% elif desired_vicare_mode == 'forcedNormal' and bedroom_needs_heat and salon_needs_heat %}
-                      La chambre et le salon sont sous leur consigne de démarrage.
-                      Le chauffage démarre.
-
-                    {% elif desired_vicare_mode == 'forcedNormal' and bedroom_needs_heat %}
-                      La chambre est sous sa consigne de démarrage.
-                      Le chauffage démarre.
-
-                    {% elif desired_vicare_mode == 'forcedNormal' and salon_needs_heat %}
-                      Le salon est sous sa consigne de démarrage.
-                      Le chauffage démarre.
-
-                    {% elif desired_vicare_mode == 'forcedNormal' %}
-                      Une pièce a demandé du chauffage.
-                      Le chauffage démarre.
-
-                    {% else %}
-                      Consignes atteintes (ou maison tempérée).
-                      Bascule en eau chaude sanitaire seule (DHW).
-                    {% endif %}
-
-                    Chambre : {{ bedroom_temp | round(1) }}°C / cible {{ bedroom_target | float | round(1) }}°C.
-                    Salon : {{ salon_temp | round(1) }}°C / cible {{ salon_target | float | round(1) }}°C.
-                    Extérieur : {{ outside_temp | round(1) }}°C.
+                            Chambre : {{ bedroom_temp | round(1) }}°C / cible {{ bedroom_target | float | round(1) }}°C.
+                            Salon : {{ salon_temp | round(1) }}°C / cible {{ salon_target | float | round(1) }}°C.
+                            Extérieur : {{ outside_temp | round(1) }}°C.
 
   - alias: Hot Water Boost End
     id: hot_water_boost_end
@@ -522,7 +572,7 @@ template:
         unique_id: chauffage_statut
         icon: >-
           {% set home_count = states('zone.home') | int(0) %}
-          {% set mode = state_attr('climate.vitrocrossal_300_cu3a_heating', 'active_vicare_mode') %}
+          {% set mode = state_attr('climate.vitrocrossal_300_cu3a_heating', 'active_vicare_mode') | default('standby', true) %}
 
           {% if home_count == 0 %}
             mdi:home-export-outline
@@ -541,7 +591,7 @@ template:
           {% endif %}
         state: >-
           {% set home_count = states('zone.home') | int(0) %}
-          {% set mode = state_attr('climate.vitrocrossal_300_cu3a_heating', 'active_vicare_mode') %}
+          {% set mode = state_attr('climate.vitrocrossal_300_cu3a_heating', 'active_vicare_mode') | default('standby', true) %}
 
           {% if home_count == 0 %}
             Absence
@@ -562,7 +612,7 @@ template:
           {% endif %}
         attributes:
           personnes_maison: "{{ states('zone.home') | int(0) }}"
-          mode_vicare: "{{ state_attr('climate.vitrocrossal_300_cu3a_heating', 'active_vicare_mode') }}"
+          mode_vicare: "{{ state_attr('climate.vitrocrossal_300_cu3a_heating', 'active_vicare_mode') | default('standby', true) }}"
           chambre_temp: "{{ states('sensor.thermo_1_temperature') }}"
           salon_temp: "{{ states('sensor.thermo_2_temperature') }}"
           temperature_exterieure: "{{ states('sensor.vitrocrossal_300_cu3a_outside_temperature') }}"
