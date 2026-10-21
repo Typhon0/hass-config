@@ -1,27 +1,35 @@
 sidebar_weather:
   triggers_update:
     - weather.maison
+    - weather.nilvange
+    - sensor.nilvange_rain_chance
+    - sensor.nilvange_next_rain
+    - sensor.weather_forecast_daily
+    - sensor.weather_forecast_hourly
+    - sun.sun
   show_icon: false
   show_name: false
   show_state: false
   tap_action:
     action: more-info
+    haptic: medium
   hold_action:
-    action: none
+    action: more-info
   styles:
     grid:
       - grid-template-areas: '"main"'
       - grid-template-columns: 1fr
       - grid-template-rows: min-content
     card:
-      - padding: 1.2rem 1.25rem
-      - border-radius: 28px
-      - background: rgba(12, 12, 14, 0.52)
-      - border: 1px solid rgba(255,255,255,0.06)
-      - backdrop-filter: blur(18px)
-      - -webkit-backdrop-filter: blur(18px)
-      - box-shadow: inset 0 1px 0 rgba(255,255,255,0.04)
-      - overflow: hidden
+      - padding: 0.2rem 1.4rem 1.2rem 1.4rem
+      - border-radius: 0
+      - background: transparent
+      - border: none
+      - backdrop-filter: none
+      - -webkit-backdrop-filter: none
+      - box-shadow: none
+      - overflow: visible
+      - cursor: pointer
     custom_fields:
       main:
         - justify-self: stretch
@@ -29,15 +37,30 @@ sidebar_weather:
   custom_fields:
     main: >
       [[[
-        if (!entity) return '<div class="wx-empty">Météo indisponible</div>';
+        const wxM = states['weather.maison'] || {};
+        const wxN = states['weather.nilvange'] || {};
+        const rainChance = states['sensor.nilvange_rain_chance']?.state;
+        const rainNext = states['sensor.nilvange_next_rain'] || {};
+        const forecastDaily = states['sensor.weather_forecast_daily']?.attributes?.forecast || [];
+        const forecastHourly = states['sensor.weather_forecast_hourly']?.attributes?.forecast || [];
+        const sun = states['sun.sun'] || {};
 
-        const s = entity.state || '';
-        const a = entity.attributes || {};
-        const temp = a.temperature !== undefined ? `${Math.round(a.temperature * 10) / 10} °C` : '—';
-        const hum = a.humidity !== undefined ? `${a.humidity}% hum.` : '';
-        const wind = a.wind_speed !== undefined ? `${Math.round(a.wind_speed)} ${a.wind_speed_unit || ''}`.trim() : '';
+        const wxState = wxM.state || wxN.state || 'partlycloudy';
+        const wxAttrs = wxM.attributes || {};
+        const curTemp = wxAttrs.temperature !== undefined ? `${Math.round(wxAttrs.temperature * 10) / 10}°` : '—';
+        const appTemp = wxN.attributes?.apparent_temperature !== undefined ? `${Math.round(wxN.attributes.apparent_temperature)}°` : '';
+        const hum = wxAttrs.humidity !== undefined ? `${wxAttrs.humidity}%` : '';
+        const wind = wxAttrs.wind_speed !== undefined ? `${Math.round(wxAttrs.wind_speed)} km/h` : '';
 
-        const icons = {
+        let hiLoText = '';
+        if (forecastDaily.length > 0) {
+          const today = forecastDaily[0];
+          if (today.temperature !== undefined && today.templow !== undefined) {
+            hiLoText = `${Math.round(today.templow)}° / ${Math.round(today.temperature)}°`;
+          }
+        }
+
+        const wxIcons = {
           'clear-night': 'mdi:weather-night',
           'cloudy': 'mdi:weather-cloudy',
           'exceptional': 'mdi:alert-circle-outline',
@@ -55,10 +78,10 @@ sidebar_weather:
           'windy-variant': 'mdi:weather-windy-variant'
         };
 
-        const labels = {
+        const wxLabels = {
           'clear-night': 'Nuit claire',
           'cloudy': 'Nuageux',
-          'exceptional': 'Alerte',
+          'exceptional': 'Alerte météo',
           'fog': 'Brume',
           'hail': 'Grêle',
           'lightning': 'Orage',
@@ -73,96 +96,549 @@ sidebar_weather:
           'windy-variant': 'Venteux'
         };
 
-        const accent = ['sunny'].includes(s)
-          ? '#ffd84f'
-          : ['rainy', 'pouring', 'lightning-rainy', 'snowy-rainy'].includes(s)
-            ? '#8ab9ff'
-            : ['clear-night'].includes(s)
-              ? '#d9ddff'
-              : '#e7ebf2';
+        const icon = wxIcons[wxState] || 'mdi:weather-partly-cloudy';
+        const label = wxLabels[wxState] || wxState || 'Météo';
 
-        const icon = icons[s] || 'mdi:weather-partly-cloudy';
-        const label = labels[s] || s || 'Météo';
+        const accentColor = ['sunny'].includes(wxState)
+          ? '#ffd84f'
+          : ['rainy', 'pouring', 'lightning-rainy', 'snowy-rainy'].includes(wxState)
+            ? '#7fb3ff'
+            : ['clear-night'].includes(wxState)
+              ? '#c0c8ff'
+              : '#e2e7ef';
+
+        // Sunset / Sunrise info
+        let sunText = '';
+        let sunIcon = 'mdi:weather-sunset';
+        if (sun && sun.attributes) {
+          const isDay = sun.state === 'above_horizon';
+          const targetIso = isDay ? sun.attributes.next_setting : sun.attributes.next_rising;
+          if (targetIso) {
+            const d = new Date(targetIso);
+            const hh = String(d.getHours()).padStart(2, '0');
+            const mm = String(d.getMinutes()).padStart(2, '0');
+            sunText = isDay ? `Coucher ${hh}:${mm}` : `Lever ${hh}:${mm}`;
+            sunIcon = isDay ? 'mdi:weather-sunset-down' : 'mdi:weather-sunset-up';
+          }
+        }
+
+        // Check rain within the hour
+        const rain1h = rainNext.attributes?.['1_hour_forecast'];
+        let hasRainSoon = false;
+        let isRainingNow = false;
+        let firstRain = null;
+        let firstDryAfterRain = null;
+        let intervals = [];
+
+        const getLvl = (desc) => {
+          const d = (desc || '').toLowerCase();
+          if (d.includes('forte')) return 3;
+          if (d.includes('modérée') || d.includes('moderee')) return 2;
+          if (d.includes('faible')) return 1;
+          return 0;
+        };
+
+        if (rain1h && typeof rain1h === 'object') {
+          intervals = [
+            [0, rain1h['0 min'] || 'Temps sec'],
+            [5, rain1h['5 min'] || 'Temps sec'],
+            [10, rain1h['10 min'] || 'Temps sec'],
+            [15, rain1h['15 min'] || 'Temps sec'],
+            [20, rain1h['20 min'] || 'Temps sec'],
+            [25, rain1h['25 min'] || 'Temps sec'],
+            [35, rain1h['35 min'] || 'Temps sec'],
+            [45, rain1h['45 min'] || 'Temps sec'],
+            [55, rain1h['55 min'] || 'Temps sec'],
+          ];
+
+          isRainingNow = getLvl(intervals[0][1]) > 0;
+          firstRain = intervals.find(it => getLvl(it[1]) > 0);
+          firstDryAfterRain = intervals.find((it, idx) => idx > 0 && getLvl(it[1]) === 0 && isRainingNow);
+          hasRainSoon = isRainingNow || !!firstRain;
+        }
+
+        // Contextual Middle Widget: Rain Bars if rain imminent, Hourly Strip if dry
+        let middleWidgetHtml = '';
+
+        if (hasRainSoon) {
+          const barCount = 24;
+          let barsHtml = '';
+          for (let i = 0; i < barCount; i++) {
+            const minute = (i / (barCount - 1)) * 55;
+            let closest = intervals[0];
+            let minDiff = 999;
+            for (const it of intervals) {
+              const diff = Math.abs(it[0] - minute);
+              if (diff < minDiff) {
+                minDiff = diff;
+                closest = it;
+              }
+            }
+            const lvl = getLvl(closest[1]);
+            barsHtml += `<div class="apple-bar lvl-${lvl}"></div>`;
+          }
+
+          let summaryMsg = 'Pluie continue sur la prochaine heure';
+          if (isRainingNow) {
+            if (firstDryAfterRain) {
+              summaryMsg = `Fin de la pluie d'ici ${firstDryAfterRain[0]} min`;
+            }
+          } else if (firstRain) {
+            summaryMsg = `Pluie prévue dans ${firstRain[0]} min`;
+          }
+
+          middleWidgetHtml = `
+            <div class="apple-rain-block">
+              <div class="apple-rain-header">
+                <span class="apple-rain-title">PRÉCIPITATIONS DANS L'HEURE</span>
+              </div>
+              <div class="apple-bars-container">
+                ${barsHtml}
+              </div>
+              <div class="apple-rain-timeline">
+                <span>Maintenant</span>
+                <span>15m</span>
+                <span>30m</span>
+                <span>45m</span>
+                <span>60m</span>
+              </div>
+              <div class="apple-rain-summary active-rain">
+                <ha-icon icon="mdi:weather-pouring"></ha-icon>
+                <span>${summaryMsg}</span>
+              </div>
+            </div>
+          `;
+        } else if (forecastHourly.length > 0) {
+          const nowTs = new Date().getTime();
+          const upcoming = forecastHourly
+            .filter(h => new Date(h.datetime).getTime() >= (nowTs - 45 * 60 * 1000))
+            .slice(0, 5);
+
+          if (upcoming.length > 0) {
+            const hourlyCols = upcoming.map((h, idx) => {
+              const d = new Date(h.datetime);
+              const isNow = idx === 0 && Math.abs(d.getTime() - nowTs) < 45 * 60 * 1000;
+              const hLabel = isNow ? 'Maint.' : `${d.getHours()}h`;
+              const hIcon = wxIcons[h.condition] || 'mdi:weather-partly-cloudy';
+              const hTemp = h.temperature !== undefined ? `${Math.round(h.temperature)}°` : '—';
+              const precip = (h.precipitation !== undefined && h.precipitation > 0) ? `${Math.round(h.precipitation * 10) / 10}mm` : '';
+              return `
+                <div class="wx-hourly-item">
+                  <span class="wx-hourly-label">${hLabel}</span>
+                  <ha-icon icon="${hIcon}" class="wx-hourly-icon"></ha-icon>
+                  <span class="wx-hourly-temp">${hTemp}</span>
+                  ${precip ? `<span class="wx-hourly-precip">${precip}</span>` : ''}
+                </div>
+              `;
+            }).join('');
+
+            middleWidgetHtml = `
+              <div class="wx-hourly-block">
+                <div class="apple-rain-header">
+                  <span class="apple-rain-title">PRÉVISIONS HEURE PAR HEURE</span>
+                </div>
+                <div class="wx-hourly-strip">
+                  ${hourlyCols}
+                </div>
+              </div>
+            `;
+          }
+        }
+
+        // 3-Day Forecast Strip
+        let forecastHtml = '';
+        if (forecastDaily.length > 1) {
+          const daysMap = ['DIM', 'LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM'];
+          const nextDays = forecastDaily.slice(1, 4);
+          const cols = nextDays.map(d => {
+            const dateObj = new Date(d.datetime);
+            const dayName = daysMap[dateObj.getDay()] || '';
+            const cIcon = wxIcons[d.condition] || 'mdi:weather-partly-cloudy';
+            const hi = d.temperature !== undefined ? `${Math.round(d.temperature)}°` : '—';
+            const lo = d.templow !== undefined ? `${Math.round(d.templow)}°` : '—';
+            return `
+              <div class="wx-fc-day">
+                <span class="wx-fc-label">${dayName}</span>
+                <ha-icon icon="${cIcon}" class="wx-fc-icon"></ha-icon>
+                <span class="wx-fc-temps">${hi} <span class="wx-fc-lo">${lo}</span></span>
+              </div>
+            `;
+          }).join('');
+
+          forecastHtml = `<div class="wx-forecast-strip">${cols}</div>`;
+        }
+
+        // Contextual Pills: Rain Pill vs Sunset/Sunrise Pill
+        const rainChanceVal = parseInt(rainChance, 10);
+        const hasRainRisk = !isNaN(rainChanceVal) && rainChanceVal > 15;
+        let rainPill = '';
+        if (hasRainSoon || hasRainRisk) {
+          const isHigh = hasRainSoon || rainChanceVal > 30;
+          rainPill = `
+            <div class="wx-pill ${isHigh ? 'accent-rain' : ''}">
+              <ha-icon icon="mdi:weather-rainy"></ha-icon>
+              <span>${!isNaN(rainChanceVal) ? `${rainChanceVal}% pluie` : 'Pluie'}</span>
+            </div>
+          `;
+        }
+
+        let sunPill = '';
+        if (sunText && (!hasRainRisk || rainChanceVal <= 30)) {
+          sunPill = `
+            <div class="wx-pill">
+              <ha-icon icon="${sunIcon}"></ha-icon>
+              <span>${sunText}</span>
+            </div>
+          `;
+        }
 
         return `
           <div class="wx-wrap">
+            <div class="sb-divider"></div>
+
             <div class="wx-top">
-              <div class="wx-icon" style="color:${accent};"><ha-icon icon="${icon}"></ha-icon></div>
-              <div class="wx-copy">
-                <div class="wx-state">${label}</div>
-                <div class="wx-temp">${temp}</div>
+              <div class="wx-icon-box" style="--wx-accent: ${accentColor};">
+                <ha-icon icon="${icon}"></ha-icon>
+              </div>
+              <div class="wx-meta">
+                <div class="wx-condition-row">
+                  <span class="wx-condition">${label}</span>
+                  <ha-icon icon="mdi:chevron-right" class="wx-chevron"></ha-icon>
+                </div>
+                <div class="wx-temp-row">
+                  <span class="wx-temp">${curTemp}</span>
+                  ${appTemp ? `<span class="wx-apparent">Ressenti ${appTemp}</span>` : ''}
+                </div>
+                ${hiLoText ? `<div class="wx-hilo">${hiLoText}</div>` : ''}
               </div>
             </div>
-            <div class="wx-bottom">
-              ${hum ? `<span>${hum}</span>` : ''}
-              ${wind ? `<span>${wind}</span>` : ''}
+
+            <div class="wx-pills">
+              ${rainPill}
+              ${sunPill}
+              ${hum ? `<div class="wx-pill"><ha-icon icon="mdi:water-percent"></ha-icon><span>${hum}</span></div>` : ''}
+              ${wind ? `<div class="wx-pill"><ha-icon icon="mdi:weather-windy"></ha-icon><span>${wind}</span></div>` : ''}
             </div>
+
+            ${middleWidgetHtml}
+            ${forecastHtml}
           </div>
         `;
       ]]]
   extra_styles: |
     .wx-wrap {
-      display: grid;
-      gap: 0.7rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.3rem;
+    }
+
+    .sb-divider {
+      height: 1px;
+      margin: 0.2rem 0 0.5rem 0;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
     }
 
     .wx-top {
       display: grid;
       grid-template-columns: auto 1fr;
       align-items: center;
-      gap: 0.95rem;
+      gap: 1.2rem;
     }
 
-    .wx-icon {
-      width: 3.1rem;
-      height: 3.1rem;
+    .wx-icon-box {
+      width: 4.4rem;
+      height: 4.4rem;
+      border-radius: 50%;
       display: grid;
       place-items: center;
-      border-radius: 50%;
-      background: rgba(255,255,255,0.06);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+      color: var(--wx-accent);
     }
 
-    .wx-icon ha-icon {
-      --mdc-icon-size: 1.55rem;
+    .wx-icon-box ha-icon {
+      --mdc-icon-size: 2.5rem;
+      filter: drop-shadow(0 0 6px var(--wx-accent));
     }
 
-    .wx-state {
+    .wx-meta {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .wx-condition-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .wx-condition {
       font-size: 1.55rem;
-      line-height: 1.05;
       font-weight: 700;
-      color: rgba(255,255,255,0.94);
+      color: rgba(255,255,255,0.96);
+      line-height: 1.15;
+    }
+
+    .wx-chevron {
+      --mdc-icon-size: 1.4rem;
+      color: rgba(255,255,255,0.35);
+      transition: transform 0.2s ease, color 0.2s ease;
+    }
+
+    ha-card:hover .wx-chevron {
+      color: rgba(255,255,255,0.8);
+      transform: translateX(3px);
+    }
+
+    .wx-temp-row {
+      display: flex;
+      align-items: baseline;
+      gap: 0.8rem;
+      margin-top: 0.25rem;
     }
 
     .wx-temp {
-      font-size: 1.05rem;
-      line-height: 1.12;
-      font-weight: 540;
-      color: rgba(224,228,235,0.86);
-      margin-top: 0.22rem;
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.03em;
+      line-height: 1;
     }
 
-    .wx-bottom {
+    .wx-apparent {
+      font-size: 1.12rem;
+      font-weight: 500;
+      color: rgba(210, 215, 222, 0.8);
+    }
+
+    .wx-hilo {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: rgba(165, 174, 185, 0.75);
+      margin-top: 0.2rem;
+    }
+
+    .wx-pills {
       display: flex;
-      gap: 0.5rem;
+      gap: 0.55rem;
       flex-wrap: wrap;
     }
 
-    .wx-bottom span {
+    .wx-pill {
       display: inline-flex;
       align-items: center;
-      min-height: 1.9rem;
-      padding: 0 0.75rem;
+      gap: 0.45rem;
+      padding: 0.42rem 0.82rem;
       border-radius: 999px;
-      background: rgba(255,255,255,0.07);
-      border: 1px solid rgba(255,255,255,0.05);
-      color: rgba(224,228,235,0.82);
-      font-size: 0.82rem;
-      font-weight: 650;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.08);
+      font-size: 0.96rem;
+      font-weight: 600;
+      color: rgba(228, 233, 241, 0.9);
     }
 
-    .wx-empty {
-      color: rgba(224,228,235,0.76);
-      font-size: 0.95rem;
+    .wx-pill ha-icon {
+      --mdc-icon-size: 1.15rem;
+      color: rgba(255,255,255,0.75);
+    }
+
+    .wx-pill.accent-rain {
+      background: rgba(127, 179, 255, 0.14);
+      border-color: rgba(127, 179, 255, 0.28);
+      color: #8ab9ff;
+    }
+
+    .wx-pill.accent-rain ha-icon {
+      color: #8ab9ff;
+    }
+
+    /* Apple-style Next-Hour Forecast Widget — Seamless / Fondu */
+    .apple-rain-block {
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+      padding: 0.4rem 0;
+      background: transparent;
+      border: none;
+      margin-top: 0.2rem;
+    }
+
+    .apple-rain-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .apple-rain-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      color: rgba(214, 218, 224, 0.7);
+    }
+
+    .apple-bars-container {
+      display: flex;
+      align-items: flex-end;
+      height: 48px;
+      gap: 3.5px;
+      padding-top: 4px;
+      padding-bottom: 2px;
+    }
+
+    .apple-bar {
+      flex: 1;
+      border-radius: 999px;
+      transition: height 0.3s ease, background 0.3s ease;
+    }
+
+    .apple-bar.lvl-0 {
+      height: 5px;
+      background: rgba(255, 255, 255, 0.16);
+    }
+
+    .apple-bar.lvl-1 {
+      height: 38%;
+      background: linear-gradient(to top, #3182b7, #7fb3ff);
+      box-shadow: 0 0 4px rgba(127, 179, 255, 0.35);
+    }
+
+    .apple-bar.lvl-2 {
+      height: 68%;
+      background: linear-gradient(to top, #2979b6, #8ab9ff);
+      box-shadow: 0 0 6px rgba(138, 185, 255, 0.55);
+    }
+
+    .apple-bar.lvl-3 {
+      height: 100%;
+      background: linear-gradient(to top, #1e6091, #a0c4ff);
+      box-shadow: 0 0 8px rgba(160, 196, 255, 0.75);
+    }
+
+    .apple-rain-timeline {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
       font-weight: 600;
+      color: rgba(160, 168, 179, 0.65);
+      padding: 0 2px;
+    }
+
+    .apple-rain-summary {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.98rem;
+      font-weight: 600;
+      color: rgba(226, 230, 238, 0.9);
+      margin-top: 0.2rem;
+    }
+
+    .apple-rain-summary ha-icon {
+      --mdc-icon-size: 1.2rem;
+      color: rgba(255, 255, 255, 0.75);
+    }
+
+    .apple-rain-summary.active-rain {
+      color: #8ab9ff;
+    }
+
+    .apple-rain-summary.active-rain ha-icon {
+      color: #8ab9ff;
+    }
+
+    .wx-forecast-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.75rem;
+      padding: 0.5rem 0;
+      background: transparent;
+      border: none;
+      margin-top: 0.3rem;
+    }
+
+    .wx-fc-day {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.3rem;
+      text-align: center;
+    }
+
+    .wx-fc-label {
+      font-size: 0.92rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: rgba(165, 174, 185, 0.75);
+    }
+
+    .wx-fc-icon {
+      --mdc-icon-size: 1.85rem;
+      color: rgba(255, 255, 255, 0.9);
+      margin: 0.2rem 0;
+    }
+
+    .wx-fc-temps {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.95);
+    }
+
+    .wx-fc-lo {
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: rgba(155, 163, 175, 0.7);
+    }
+
+    /* Hourly Forecast Strip (Apple Weather style) */
+    .wx-hourly-block {
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+      padding: 0.4rem 0;
+      background: transparent;
+      border: none;
+      margin-top: 0.2rem;
+    }
+
+    .wx-hourly-strip {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0.45rem;
+      align-items: center;
+    }
+
+    .wx-hourly-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.3rem;
+      text-align: center;
+    }
+
+    .wx-hourly-label {
+      font-size: 0.88rem;
+      font-weight: 650;
+      letter-spacing: 0.02em;
+      color: rgba(165, 174, 185, 0.75);
+      white-space: nowrap;
+    }
+
+    .wx-hourly-icon {
+      --mdc-icon-size: 1.7rem;
+      color: rgba(255, 255, 255, 0.9);
+      margin: 0.15rem 0;
+    }
+
+    .wx-hourly-temp {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.95);
+    }
+
+    .wx-hourly-precip {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #8ab9ff;
     }

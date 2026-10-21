@@ -10,7 +10,7 @@ browser_mod:
         - type: markdown
           content: |
             # Cuisine
-            Gestion de l'éclairage et du confort thermique (en attente d'équipement)
+            Éclairage, confort, minuterie et électroménager
           card_mod:
             style: |
               ha-card {
@@ -25,6 +25,7 @@ browser_mod:
               }
               h1 {
                 margin: 0 0 4px 0;
+                font-family: "sf display", SF Pro Display, system-ui, sans-serif;
                 font-size: 2rem;
                 line-height: 1.05;
                 font-weight: 700;
@@ -52,12 +53,63 @@ browser_mod:
             - type: custom:button-card
               name: Éclairage
               state_display: En attente
+              double_tap_action:
+                action: more-info
               template:
                 - base
                 - icon_lamp
+
+            - type: custom:button-card
+              entity: sensor.cuisine_timers
+              name: Minuteur
+              tap_action:
+                action: more-info
+                entity: media_player.cuisine
+              double_tap_action:
+                action: more-info
+              template:
+                - base
+                - icon_nest_mini
+              state_display: >
+                [[[
+                  if (!entity || entity.state === 'unavailable' || entity.state === 'unknown') return 'Aucun';
+                  return entity.state;
+                ]]]
+
+            - type: custom:button-card
+              entity: sensor.refrigerateur_fridge_temp
+              name: Réfrigérateur
+              tap_action:
+                action: more-info
+                entity: sensor.refrigerateur
+              double_tap_action:
+                action: more-info
+                entity: sensor.refrigerateur_fridge_temp
+              template:
+                - base
+                - circle
+                - icon_fridge
+              variables:
+                circle_input: >
+                  [[[
+                    if (!entity || entity.state === 'unavailable' || entity.state === 'unknown') return '4';
+                    return entity.state;
+                  ]]]
+                circle_input_unit: "°C"
+              state_display: >
+                [[[
+                  let door = states['binary_sensor.refrigerateur_door_open'];
+                  if (door && door.state === 'on') return 'Porte ouverte !';
+                  let eco = states['switch.refrigerateur_eco_friendly'];
+                  if (eco && eco.state === 'on') return 'Mode Éco';
+                  return 'Fermé • Normal';
+                ]]]
+
             - type: custom:button-card
               name: Chauffage
               state_display: En attente
+              double_tap_action:
+                action: more-info
               template:
                 - base
                 - icon_climate

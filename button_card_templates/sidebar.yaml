@@ -3,8 +3,14 @@ sidebar:
     - settings
   triggers_update:
     - sensor.template_sidebar
-    - person.loic
-    - person.emma
+    - lock.aqara_smart_lock_u200
+    - alarm_control_panel.tyxal_alarm
+    - sensor.57_weather_alert
+    - binary_sensor.klippbok_water_leak_sensor_water_leak
+    - binary_sensor.freebox_v7_r1_wan_status
+    - timer.laundry
+    - sensor.trajet_travail_loic
+    - sensor.trajet_travail_emma
   show_icon: false
   show_name: false
   show_state: false
@@ -16,14 +22,14 @@ sidebar:
       - grid-template-columns: 1fr
       - grid-template-rows: min-content
     card:
-      - padding: 2.75vh 2.15vw 2.2vh 2.15vw
-      - border-radius: 30px
-      - background: rgba(12, 12, 14, 0.52)
+      - padding: 1.5rem 1.4rem 0.6rem 1.4rem
+      - border-radius: 0
+      - background: transparent
       - border: none
-      - backdrop-filter: blur(18px)
-      - -webkit-backdrop-filter: blur(18px)
       - box-shadow: none
-      - overflow: hidden
+      - backdrop-filter: none
+      - -webkit-backdrop-filter: none
+      - overflow: visible
     custom_fields:
       main:
         - justify-self: stretch
@@ -34,124 +40,429 @@ sidebar:
         if (!entity) return '';
 
         const attrs = entity.attributes || {};
-        const hidden = ['friendly_name', 'icon', 'unit_of_measurement', 'device_class', 'state_class'];
-        let lines = [];
-        let tariff = '';
+        const lock = states['lock.aqara_smart_lock_u200'] || {};
+        const alarm = states['alarm_control_panel.tyxal_alarm'] || {};
+        const alert57 = states['sensor.57_weather_alert'] || {};
+        const leak = states['binary_sensor.klippbok_water_leak_sensor_water_leak'] || {};
+        const wan = states['binary_sensor.freebox_v7_r1_wan_status'] || {};
+        const laundry = states['timer.laundry'] || {};
+        const trajLoic = states['sensor.trajet_travail_loic'] || {};
+        const trajEmma = states['sensor.trajet_travail_emma'] || {};
 
-        for (const [k, v] of Object.entries(attrs)) {
-          if (hidden.includes(k) || v === false || v === null || v === undefined || v === '') continue;
-          if (k === 'time' || k === 'date') continue;
+        const timeHtml = attrs.time ?? '--:--';
+        const dateHtml = attrs.date ?? '';
+        const tariffRaw = attrs.tarif || '';
 
-          const raw = `${v}`;
+        // Security: Lock Aqara U200
+        const isLocked = lock.state === 'locked';
+        const lockIcon = isLocked ? 'mdi:lock-outline' : 'mdi:lock-open-alert';
+        const lockText = isLocked ? 'Entrée verrouillée' : 'Entrée déverrouillée';
+        const lockClass = isLocked ? 'is-locked' : 'is-unlocked';
+        const lockClickAction = isLocked
+          ? `event.stopPropagation(); this.dispatchEvent(new CustomEvent('hass-more-info', { detail: { entityId: 'lock.aqara_smart_lock_u200' }, bubbles: true, composed: true }));`
+          : `event.stopPropagation(); const h = this.getRootNode().host; if (h && h.hass) { h.hass.callService('lock', 'lock', { entity_id: 'lock.aqara_smart_lock_u200' }); }`;
 
-          if (k === 'greet') {
-            lines.push(`<div class="greet">${raw}</div>`);
-            continue;
-          }
+        const lockPillHtml = `
+          <div class="sb-sec-pill ${lockClass}" onclick="${lockClickAction}">
+            <ha-icon icon="${lockIcon}"></ha-icon>
+            <span>${lockText}</span>
+          </div>
+        `;
 
-          if (raw.includes('class="tarif') || k.toLowerCase().includes('tarif')) {
-            tariff = raw;
-            continue;
-          }
+        // Security: Alarm Tyxal
+        const alarmState = alarm.state || 'disarmed';
+        let alarmIcon = 'mdi:shield-outline';
+        let alarmText = 'Alarme désarmée';
+        let alarmClass = 'is-disarmed';
 
-          const cls = raw.startsWith('<b>') ? 'highlight' : 'meta';
-          lines.push(`<div class="${cls}">${raw}</div>`);
+        if (alarmState === 'armed_night') {
+          alarmIcon = 'mdi:shield-moon';
+          alarmText = 'Alarme nuit';
+          alarmClass = 'is-armed';
+        } else if (alarmState === 'armed_away' || alarmState === 'armed_home') {
+          alarmIcon = 'mdi:shield-check';
+          alarmText = 'Alarme armée';
+          alarmClass = 'is-armed';
+        } else if (alarmState.includes('triggered')) {
+          alarmIcon = 'mdi:shield-alert';
+          alarmText = 'Alarme DÉCLENCHÉE';
+          alarmClass = 'is-triggered';
         }
 
+        const alarmClickAction = `event.stopPropagation(); this.dispatchEvent(new CustomEvent('hass-more-info', { detail: { entityId: 'alarm_control_panel.tyxal_alarm' }, bubbles: true, composed: true }));`;
+
+        const alarmPillHtml = `
+          <div class="sb-sec-pill ${alarmClass}" onclick="${alarmClickAction}">
+            <ha-icon icon="${alarmIcon}"></ha-icon>
+            <span>${alarmText}</span>
+          </div>
+        `;
+
+        // Commute: Waze (Lundi à Vendredi, 6h30 - 11h00)
+        let commuteHtml = '';
+        const nowObj = new Date();
+        const currentDay = nowObj.getDay(); // 0=Dim, 1=Lun ... 5=Ven
+        const currentMins = nowObj.getHours() * 60 + nowObj.getMinutes();
+        const isCommuteTime = (currentDay >= 1 && currentDay <= 5) && (currentMins >= 390 && currentMins < 660);
+
+        if (isCommuteTime) {
+          const tL = Math.round(parseFloat(trajLoic.state) || 0);
+          const tE = Math.round(parseFloat(trajEmma.state) || 0);
+          if (tL > 0 || tE > 0) {
+            commuteHtml = `
+              <div class="sb-commute-row">
+                ${tL > 0 ? `
+                  <div class="sb-commute-item">
+                    <ha-icon icon="mdi:car"></ha-icon>
+                    <span>Loïc <b>${tL} min</b></span>
+                  </div>
+                ` : ''}
+                ${tE > 0 ? `
+                  <div class="sb-commute-item">
+                    <ha-icon icon="mdi:car"></ha-icon>
+                    <span>Emma <b>${tE} min</b></span>
+                  </div>
+                ` : ''}
+              </div>
+            `;
+          }
+        }
+
+        // Contextual Incident / Event Banners
+        let alertBanners = [];
+
+        // 1. Water leak (critical)
+        if (leak.state === 'on') {
+          alertBanners.push(`
+            <div class="sb-alert-banner danger">
+              <ha-icon icon="mdi:water-alert"></ha-icon>
+              <span>Fuite d'eau détectée !</span>
+            </div>
+          `);
+        }
+
+        // 2. Internet WAN offline
+        if (wan.state === 'off') {
+          alertBanners.push(`
+            <div class="sb-alert-banner warning">
+              <ha-icon icon="mdi:wifi-off"></ha-icon>
+              <span>Connexion Internet coupée</span>
+            </div>
+          `);
+        }
+
+        // 3. Météo-France alert 57 (Jaune, Orange, Rouge)
+        const alertState = (alert57.state || '').toLowerCase();
+        if (!['vert', 'green', 'unknown', 'unavailable', ''].includes(alertState)) {
+          const attrs57 = alert57.attributes || {};
+          const activeRisks = Object.keys(attrs57)
+            .filter(k => !['attribution', 'icon', 'friendly_name'].includes(k) && (attrs57[k] || '').toLowerCase() !== 'vert')
+            .join(', ');
+          const riskLabel = activeRisks ? `Vigilance ${alert57.state} : ${activeRisks}` : `Vigilance ${alert57.state}`;
+          alertBanners.push(`
+            <div class="sb-alert-banner weather-${alertState}">
+              <ha-icon icon="mdi:weather-cloudy-alert"></ha-icon>
+              <span>${riskLabel}</span>
+            </div>
+          `);
+        }
+
+        // 4. Laundry timer active
+        if (laundry.state === 'active') {
+          alertBanners.push(`
+            <div class="sb-alert-banner laundry">
+              <ha-icon icon="mdi:washing-machine"></ha-icon>
+              <span>Cycle lessive en cours</span>
+            </div>
+          `);
+        }
+
+        const alertsHtml = alertBanners.length > 0
+          ? `<div class="sb-alerts-wrap">${alertBanners.join('')}</div>`
+          : '';
+
         return `
-          <div class="wrap">
-            <div class="time">${attrs.time ?? '--:--'}</div>
-            <div class="date">${attrs.date ?? ''}</div>
-            <div class="body">${lines.join('')}</div>
-            <div class="chips">${tariff || ''}</div>
+          <div class="sb-container">
+            <div class="sb-header">
+              <div class="sb-time">${timeHtml}</div>
+              <div class="sb-date">${dateHtml}</div>
+            </div>
+
+            <div class="sb-content">
+              <div class="sb-chips">${tariffRaw || ''}</div>
+
+              <div class="sb-security-row">
+                ${lockPillHtml}
+                ${alarmPillHtml}
+              </div>
+
+              ${commuteHtml}
+              ${alertsHtml}
+            </div>
           </div>
         `;
       ]]]
   extra_styles: |
-    .time {
-      font-size: 5.25vw;
-      line-height: 0.95;
-      letter-spacing: -0.06em;
+    .sb-container {
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+    }
+
+    .sb-header {
+      margin-bottom: 0.6rem;
+    }
+
+    .sb-time {
+      font-size: clamp(6.2rem, 7.2vw, 7.8rem);
+      line-height: 0.88;
       font-weight: 300;
-      color: rgba(255,255,255,0.94);
-      margin: 0 0 1.3vh 0;
+      letter-spacing: -0.05em;
+      color: rgba(255,255,255,0.98);
+      margin: 0 0 0.8rem 0;
     }
 
-    .date {
-      font-size: 1.55vw;
-      line-height: 1.16;
-      font-weight: 600;
-      color: rgba(214,218,224,0.76);
-      margin: 0 0 2.8vh 0;
-      white-space: pre-line;
+    .sb-time .time {
+      font-size: inherit;
+      line-height: inherit;
+      letter-spacing: inherit;
+      font-weight: inherit;
+      color: inherit;
     }
 
-    .body {
-      display: grid;
-      gap: 1.3vh;
+    .time-colon {
+      display: inline-block;
+      position: relative;
+      top: -0.06em;
+      margin: 0 -0.02em;
+      opacity: 0.85;
     }
 
-    .greet {
-      font-size: 1.52vw;
-      line-height: 1.16;
-      font-weight: 700;
-      color: rgba(255,255,255,0.94);
-      margin-top: 0.1vh;
-      margin-bottom: 0.7vh;
-    }
-
-    .highlight {
-      font-size: 1.4vw;
+    .sb-date {
+      font-size: clamp(1.8rem, 2.15vw, 2.35rem);
       line-height: 1.2;
       font-weight: 650;
-      color: rgba(242,244,247,0.9);
-    }
-
-    .meta {
-      font-size: 1.12vw;
-      line-height: 1.36;
-      font-weight: 430;
-      color: rgba(171,177,186,0.82);
+      color: rgba(220,226,236,0.85);
+      margin: 0 0 1.8rem 0;
       white-space: pre-line;
+      letter-spacing: -0.02em;
     }
 
-    .chips {
+    .sb-content {
       display: flex;
-      gap: 0.65vw;
-      flex-wrap: wrap;
-      margin-top: 1.45vh;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    /* Tariff Chip */
+    .sb-chips {
+      display: flex;
+      gap: 0.45rem;
+      align-items: center;
     }
 
     .chip {
       display: inline-flex;
       align-items: center;
-      gap: 0.42vw;
-      padding: 0.34vw 0.78vw;
+      gap: 0.4rem;
+      padding: 0.22rem 0.65rem;
       border-radius: 999px;
-      font-size: 0.96vw;
-      line-height: 1;
-      font-weight: 600;
-      letter-spacing: -0.01em;
+      font-size: 0.82rem;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      line-height: 1.2;
     }
 
-    .chip.ghost {
-      background: rgba(255,255,255,0.08);
-      color: rgba(236,240,246,0.9);
+    .chip.tarif.hc {
+      background: rgba(52, 199, 89, 0.06);
+      border: 1px solid rgba(52, 199, 89, 0.16);
+      color: rgba(140, 202, 155, 0.82);
+    }
+
+    .chip.tarif.hp {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      color: rgba(155, 163, 173, 0.6);
     }
 
     .dot {
-      width: 0.58vw;
-      height: 0.58vw;
+      width: 5px;
+      height: 5px;
       border-radius: 50%;
       display: inline-block;
-      background: rgba(255,255,255,0.28);
     }
 
     .dot.on {
-      background: rgba(57,217,138,0.95);
-      box-shadow: 0 0 0 0.12vw rgba(57,217,138,0.18);
+      background: #34c759;
+      opacity: 0.8;
+      box-shadow: none;
     }
 
     .dot.off {
-      background: rgba(255,255,255,0.28);
+      background: rgba(255, 255, 255, 0.3);
     }
+
+    /* Security Row (Lock & Alarm) */
+    .sb-security-row {
+      display: flex;
+      gap: 0.55rem;
+      flex-wrap: wrap;
+    }
+
+    .sb-sec-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.38rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      transition: background 0.2s ease, transform 0.15s ease, border-color 0.2s ease;
+    }
+
+    .sb-sec-pill ha-icon {
+      --mdc-icon-size: 1.05rem;
+    }
+
+    .sb-sec-pill:active {
+      transform: scale(0.96);
+    }
+
+    .sb-sec-pill.is-locked {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: rgba(215, 222, 232, 0.85);
+    }
+
+    .sb-sec-pill.is-locked ha-icon {
+      color: rgba(140, 202, 155, 0.9);
+    }
+
+    .sb-sec-pill.is-unlocked {
+      background: rgba(255, 159, 10, 0.14);
+      border: 1px solid rgba(255, 159, 10, 0.38);
+      color: #ff9f0a;
+      box-shadow: 0 0 12px rgba(255, 159, 10, 0.2);
+    }
+
+    .sb-sec-pill.is-unlocked ha-icon {
+      color: #ff9f0a;
+    }
+
+    .sb-sec-pill.is-disarmed {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      color: rgba(185, 192, 202, 0.75);
+    }
+
+    .sb-sec-pill.is-disarmed ha-icon {
+      color: rgba(185, 192, 202, 0.65);
+    }
+
+    .sb-sec-pill.is-armed {
+      background: rgba(52, 199, 89, 0.12);
+      border: 1px solid rgba(52, 199, 89, 0.28);
+      color: #34c759;
+    }
+
+    .sb-sec-pill.is-armed ha-icon {
+      color: #34c759;
+    }
+
+    .sb-sec-pill.is-triggered {
+      background: rgba(255, 69, 58, 0.2);
+      border: 1px solid rgba(255, 69, 58, 0.5);
+      color: #ff453a;
+    }
+
+    /* Commute Row */
+    .sb-commute-row {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .sb-commute-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.32rem 0.68rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      font-size: 0.85rem;
+      color: rgba(215, 222, 232, 0.85);
+    }
+
+    .sb-commute-item ha-icon {
+      --mdc-icon-size: 1rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .sb-commute-item b {
+      color: #ffffff;
+      font-weight: 700;
+    }
+
+    /* Alert Banners */
+    .sb-alerts-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+
+    .sb-alert-banner {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      padding: 0.45rem 0.8rem;
+      border-radius: 12px;
+      font-size: 0.86rem;
+      font-weight: 600;
+      line-height: 1.25;
+    }
+
+    .sb-alert-banner ha-icon {
+      --mdc-icon-size: 1.15rem;
+      flex-shrink: 0;
+    }
+
+    .sb-alert-banner.danger {
+      background: rgba(255, 69, 58, 0.18);
+      border: 1px solid rgba(255, 69, 58, 0.35);
+      color: #ff6961;
+    }
+
+    .sb-alert-banner.warning {
+      background: rgba(255, 159, 10, 0.16);
+      border: 1px solid rgba(255, 159, 10, 0.3);
+      color: #ff9f0a;
+    }
+
+    .sb-alert-banner.laundry {
+      background: rgba(127, 179, 255, 0.12);
+      border: 1px solid rgba(127, 179, 255, 0.25);
+      color: #8ab9ff;
+    }
+
+    .sb-alert-banner.weather-jaune {
+      background: rgba(255, 214, 10, 0.14);
+      border: 1px solid rgba(255, 214, 10, 0.3);
+      color: #ffd60a;
+    }
+
+    .sb-alert-banner.weather-orange {
+      background: rgba(255, 159, 10, 0.18);
+      border: 1px solid rgba(255, 159, 10, 0.4);
+      color: #ff9f0a;
+    }
+
+    .sb-alert-banner.weather-rouge {
+      background: rgba(255, 69, 58, 0.22);
+      border: 1px solid rgba(255, 69, 58, 0.5);
+      color: #ff453a;
+    }
+

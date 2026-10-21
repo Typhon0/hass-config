@@ -60,12 +60,11 @@ browser_mod:
               double_tap_action:
                 action: more-info
             - type: custom:button-card
-              entity: sensor.chauffage_statut
-              name: Chauffage
+              entity: sensor.seche_linge
+              name: Sèche-linge
               template:
-                - base
-              tap_action:
-                action: more-info
+                - dryer
+              tap_action: !include dryer.yaml
             - type: custom:button-card
               entity: climate.vitrocrossal_300_cu3a_heating
               name: Chaudière
@@ -100,6 +99,10 @@ browser_mod:
           title: Détails buanderie
           show_header_toggle: false
           entities:
+            - entity: sensor.seche_linge
+              name: Sèche-linge
+            - entity: sensor.seche_linge_remaining_time
+              name: Temps restant
             - entity: light.spot_buanderie
               name: LED
             - entity: sensor.chauffage_statut

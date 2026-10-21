@@ -1,0 +1,45 @@
+action: fire-dom-event
+browser_mod:
+  service: browser_mod.popup
+  data:
+    title: Météo & Prévisions
+    size: wide
+    card_mod:
+      style:
+        ha-dialog$: |
+          div.mdc-dialog {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+          }
+          div.mdc-dialog__surface {
+            border-radius: 28px !important;
+            max-width: min(92vw, 920px) !important;
+            width: min(92vw, 920px) !important;
+          }
+    content:
+      type: vertical-stack
+      cards:
+        - type: weather-forecast
+          entity: weather.maison
+          show_current: true
+          show_forecast: true
+          forecast_type: daily
+        - type: weather-forecast
+          entity: weather.maison
+          show_current: false
+          show_forecast: true
+          forecast_type: hourly
+        - type: entities
+          title: Précipitations & Vigilance Locale
+          show_header_toggle: false
+          entities:
+            - entity: sensor.nilvange_rain_chance
+              name: Risque de précipitation
+            - entity: sensor.nilvange_next_rain
+              name: Pluie dans l'heure (Météo-France)
+            - entity: sensor.57_weather_alert
+              name: Vigilance Météo-France (57)
+            - entity: weather.nilvange
+              name: Station locale Météo-France
+

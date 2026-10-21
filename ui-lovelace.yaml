@@ -11,19 +11,19 @@ views:
       grid-template-rows: auto auto auto
       grid-template-areas: |
         "sidebar salon bureau cuisine chambre"
-        "sidebar media buanderie maison maison"
-        "sidebar media footer footer footer"
+        "sidebar media buanderie energie maison"
+        "sidebar footer footer footer footer"
       mediaquery:
         "(max-width: 800px)":
           grid-gap: calc(var(--custom-layout-card-padding) * 1.45)
           grid-template-columns: 0 repeat(2, 1fr) 0
-          grid-template-rows: repeat(6, fit-content(100%))
+          grid-template-rows: repeat(7, fit-content(100%))
           grid-template-areas: |
             ". sidebar sidebar ."
             ". salon cuisine ."
             ". bureau chambre ."
-            ". media media ."
-            ". buanderie maison ."
+            ". media buanderie ."
+            ". energie maison ."
             ". footer footer ."
         "(max-width: 1200px)":
           grid-gap: calc(var(--custom-layout-card-padding) * 0.9)
@@ -32,8 +32,8 @@ views:
           grid-template-areas: |
             "sidebar salon cuisine"
             "sidebar bureau chambre"
-            "sidebar media maison"
-            "sidebar buanderie maison"
+            "sidebar media buanderie"
+            "sidebar energie maison"
             "sidebar footer footer"
     cards:
       - type: custom:button-card
@@ -77,6 +77,7 @@ views:
           - type: custom:button-card
             entity: weather.maison
             template: sidebar_weather
+            tap_action: !include popup/weather.yaml
           - type: conditional
             conditions:
               - entity: input_boolean.laundry_display
@@ -112,6 +113,7 @@ views:
             template: room_section_header
             variables:
               schedule_entity: schedule.schedule_chauffage_salon
+              target_entity: sensor.consigne_chauffage_salon
             tap_action: !include popup/room_salon.yaml
             double_tap_action:
               action: more-info
@@ -164,7 +166,7 @@ views:
                 template:
                   - base
                   - circle
-                  - icon_climate
+                  - icon_thermometer
                 variables:
                   circle_input: >
                     [[[ return entity ? entity.state : ''; ]]]
@@ -207,6 +209,8 @@ views:
           - type: custom:button-card
             name: Bureau
             template: room_section_header
+            variables:
+              subtitle: "Espace de travail"
             tap_action: !include popup/room_bureau.yaml
           - type: grid
             columns: 2
@@ -299,6 +303,8 @@ views:
           - type: custom:button-card
             name: Cuisine
             template: room_section_header
+            variables:
+              subtitle: "Confort & Équipements"
             tap_action: !include popup/room_cuisine.yaml
           - type: grid
             columns: 2
@@ -319,16 +325,64 @@ views:
                 name: Éclairage
                 state_display: En attente
                 tap_action: !include popup/room_cuisine.yaml
+                double_tap_action:
+                  action: more-info
                 template:
                   - base
                   - icon_lamp
               - type: custom:button-card
+                entity: sensor.cuisine_timers
+                name: Minuteur
+                tap_action:
+                  action: more-info
+                  entity: media_player.nesthub7ade
+                double_tap_action:
+                  action: more-info
+                template:
+                  - base
+                  - icon_nest_mini
+                state_display: >
+                  [[[
+                    if (!entity || entity.state === 'unavailable' || entity.state === 'unknown') return 'Aucun';
+                    return entity.state;
+                  ]]]
+              - type: custom:button-card
+                entity: sensor.refrigerateur_fridge_temp
+                name: Réfrigérateur
+                tap_action:
+                  action: more-info
+                  entity: sensor.refrigerateur
+                double_tap_action:
+                  action: more-info
+                  entity: sensor.refrigerateur_fridge_temp
+                template:
+                  - base
+                  - circle
+                  - icon_fridge
+                variables:
+                  circle_input: >
+                    [[[
+                      if (!entity || entity.state === 'unavailable' || entity.state === 'unknown') return '4';
+                      return entity.state;
+                    ]]]
+                  circle_input_unit: "°C"
+                state_display: >
+                  [[[
+                    let door = states['binary_sensor.refrigerateur_door_open'];
+                    if (door && door.state === 'on') return 'Porte ouverte !';
+                    let eco = states['switch.refrigerateur_eco_friendly'];
+                    if (eco && eco.state === 'on') return 'Mode Éco';
+                    return 'Fermé • Normal';
+                  ]]]
+              - type: custom:button-card
                 name: Chauffage
                 state_display: En attente
                 tap_action: !include popup/room_cuisine.yaml
+                double_tap_action:
+                  action: more-info
                 template:
                   - base
-                  - icon_climate
+                  - icon_radiator
 
       - type: vertical-stack
         card_mod:
@@ -351,6 +405,7 @@ views:
             template: room_section_header
             variables:
               schedule_entity: schedule.schedule_chauffage_chambre
+              target_entity: sensor.consigne_chauffage_chambre
             tap_action: !include popup/room_chambre.yaml
             double_tap_action:
               action: more-info
@@ -389,11 +444,16 @@ views:
                 template:
                   - base
                   - circle
-                  - icon_climate
+                  - icon_thermometer
                 variables:
                   circle_input: >
                     [[[ return entity ? entity.state : ''; ]]]
                   circle_input_unit: "°C"
+                state_display: >
+                  [[[
+                    if (!entity || entity.state === 'unavailable' || entity.state === 'unknown') return '17.6 °C';
+                    return `${entity.state} °C`;
+                  ]]]
               - type: custom:button-card
                 entity: climate.thermostat1
                 name: Radiateur
@@ -407,7 +467,7 @@ views:
                 template:
                   - base
                   - circle
-                  - icon_climate
+                  - icon_radiator
                 variables:
                   circle_input: >
                     [[[
@@ -463,6 +523,8 @@ views:
           - type: custom:button-card
             name: Média
             template: room_section_header
+            variables:
+              subtitle: "Ambiance & Audio"
             tap_action: !include popup/room_media.yaml
           - type: grid
             columns: 1
@@ -486,16 +548,102 @@ views:
                             state_not: Spotify
                           - entity: select.conditional_media
                             state_not: Cuisine
+                          - entity: sensor.jellyfin_playing
+                            state: playing
                         card:
                           type: custom:button-card
                           entity: sensor.jellyfin_playing
-                          name: >
-                            [[[ return entity.state === 'playing' ? 'En lecture' : entity.state === 'paused' ? 'En pause' : 'Média'; ]]]
+                          name: En lecture
                           tap_action:
                             action: none
                           template:
                             - conditional_media
                             - icon_jellyfin
+                      - type: conditional
+                        conditions:
+                          - entity: select.conditional_media
+                            state_not: Salon
+                          - entity: select.conditional_media
+                            state_not: Chambre
+                          - entity: select.conditional_media
+                            state_not: Spotify
+                          - entity: select.conditional_media
+                            state_not: Cuisine
+                          - entity: sensor.jellyfin_playing
+                            state: paused
+                        card:
+                          type: custom:button-card
+                          entity: sensor.jellyfin_playing
+                          name: En pause
+                          tap_action:
+                            action: none
+                          template:
+                            - conditional_media
+                            - icon_jellyfin
+                      - type: conditional
+                        conditions:
+                          - entity: select.conditional_media
+                            state_not: Salon
+                          - entity: select.conditional_media
+                            state_not: Chambre
+                          - entity: select.conditional_media
+                            state_not: Spotify
+                          - entity: select.conditional_media
+                            state_not: Cuisine
+                          - entity: sensor.jellyfin_playing
+                            state_not: playing
+                          - entity: sensor.jellyfin_playing
+                            state_not: paused
+                        card:
+                          type: grid
+                          columns: 2
+                          square: false
+                          card_mod:
+                            style: |
+                              #root {
+                                row-gap: 16px !important;
+                                column-gap: 16px !important;
+                              }
+                              ha-card {
+                                background: transparent !important;
+                                border: none !important;
+                                box-shadow: none !important;
+                              }
+                          cards:
+                            - type: custom:button-card
+                              entity: media_player.sejour
+                              name: TV Séjour
+                              template:
+                                - base
+                                - icon_tv
+                              tap_action:
+                                action: toggle
+                              double_tap_action:
+                                action: more-info
+                            - type: custom:button-card
+                              entity: media_player.samsung_qn90aa_75_tv
+                              name: TV Salon
+                              template:
+                                - base
+                                - icon_apple_tv
+                              tap_action:
+                                action: more-info
+                            - type: custom:button-card
+                              entity: media_player.spotify
+                              name: Spotify
+                              template:
+                                - base
+                                - icon_spotify
+                              tap_action:
+                                action: more-info
+                            - type: custom:button-card
+                              entity: media_player.cuisine
+                              name: Enceinte Cuisine
+                              template:
+                                - base
+                                - icon_nest_mini
+                              tap_action:
+                                action: more-info
                       - type: conditional
                         conditions:
                           - entity: select.conditional_media
@@ -592,7 +740,7 @@ views:
             name: Buanderie
             template: room_section_header
             variables:
-              subtitle: 
+              subtitle: "Chaufferie & Entretien"
             tap_action: !include popup/room_buanderie.yaml
           - type: grid
             columns: 2
@@ -611,19 +759,16 @@ views:
             cards:
               - type: custom:button-card
                 entity: light.spot_buanderie
-                name: LED
+                name: Spot Buanderie
                 template:
                   - light
                   - icon_spot
               - type: custom:button-card
-                entity: sensor.chauffage_statut
-                name: Chauffage
+                entity: sensor.seche_linge
+                name: Sèche-linge
                 template:
-                  - base
-                  - icon_climate
-                show_state: true
-                tap_action:
-                  action: more-info
+                  - dryer
+                tap_action: !include popup/dryer.yaml
               - type: custom:button-card
                 entity: climate.vitrocrossal_300_cu3a_heating
                 name: Chaudière
@@ -632,24 +777,35 @@ views:
                 template:
                   - base
                   - circle
-                  - icon_climate
+                  - icon_boiler_flame
                 variables:
                   circle_input: >
                     [[[ return entity ? entity.attributes.current_temperature : ''; ]]]
                   circle_input_unit: "°C"
+                state_display: >
+                  [[[
+                    if (!entity || entity.state === 'unavailable') return 'En attente';
+                    if (entity.state === 'off') return 'Standby';
+                    return entity.state;
+                  ]]]
               - type: custom:button-card
                 entity: water_heater.vitrocrossal_300_cu3a_domestic_hot_water
-                name: Ballon
+                name: Ballon ECS
                 tap_action:
                   action: more-info
                 template:
                   - base
                   - circle
-                  - icon_climate
+                  - icon_water_boiler
                 variables:
                   circle_input: >
                     [[[ return entity ? entity.attributes.current_temperature : ''; ]]]
                   circle_input_unit: "°C"
+                state_display: >
+                  [[[
+                    if (!entity || entity.state === 'unavailable') return 'En attente';
+                    return entity.state === 'on' ? 'Prêt • 55°C' : 'Standby';
+                  ]]]
 
       - type: vertical-stack
         card_mod:
@@ -665,40 +821,59 @@ views:
               box-shadow: none !important;
             }
         view_layout:
-          grid-area: maison
+          grid-area: energie
         cards:
           - type: custom:button-card
-            name: Maison
+            name: Énergie
             template: room_section_header
             variables:
-              subtitle: 
-            tap_action: !include popup/room_maison.yaml
+              subtitle: "Mobilité & Recharge"
+            tap_action: !include popup/tesla.yaml
           - type: grid
-            columns: 3
+            columns: 2
             square: false
+            card_mod:
+              style: |
+                #root {
+                  row-gap: 16px !important;
+                  column-gap: 16px !important;
+                }
+                ha-card {
+                  background: transparent !important;
+                  border: none !important;
+                  box-shadow: none !important;
+                }
             cards:
               - type: custom:button-card
-                entity: person.loic
-                name: Loïc
+                entity: sensor.tesla_model_3_highland_battery_level
+                name: Tesla
+                tap_action: !include popup/tesla.yaml
+                template:
+                  - tesla
+                  - circle
+                  - icon_tesla
+                  - loader
                 triggers_update:
-                  - sensor.loic_last_changed
-                tap_action: !include popup/person_loic.yaml
+                  - sensor.tesla_model_3_highland_charging
+                  - sensor.tesla_model_3_highland_battery_range
                 variables:
-                  retain: sensor.loic_last_changed
-                template: person
-              - type: custom:button-card
-                entity: person.emma
-                name: Emma
-                triggers_update:
-                  - sensor.emma_last_changed
-                tap_action: !include popup/person_emma.yaml
-                variables:
-                  retain: sensor.emma_last_changed
-                template: person
+                  circle_input: >
+                    [[[
+                      if (!entity || entity.state === 'unavailable') return '';
+                      return parseInt(entity.state);
+                    ]]]
+                  circle_input_unit: "%"
                 state_display: >
                   [[[
-                    if (!entity) return variables.translate_unknown;
-                    return entity.state === 'home' ? 'Présente' : 'Absente';
+                    const charging = states['sensor.tesla_model_3_highland_charging'];
+                    if (charging && (charging.state === 'Charging' || charging.state === 'charging')) {
+                      return 'En charge';
+                    }
+                    const range = states['sensor.tesla_model_3_highland_battery_range'];
+                    if (range && range.state) {
+                      return `${Math.round(parseFloat(range.state))} km`;
+                    }
+                    return variables.translate_unknown;
                   ]]]
               - type: custom:button-card
                 entity: sensor.wallbox_pulsar_max_sn_1331158_status_description
@@ -753,46 +928,106 @@ views:
                     return `${h}:${m}:${s}`;
                   ]]]
               - type: custom:button-card
+                entity: water_heater.vitrocrossal_300_cu3a_domestic_hot_water
+                name: Ballon ECS
+                tap_action:
+                  action: more-info
+                template:
+                  - base
+                  - circle
+                  - icon_water_boiler
+                variables:
+                  circle_input: >
+                    [[[ return entity ? entity.attributes.current_temperature : ''; ]]]
+                  circle_input_unit: "°C"
+                state_display: >
+                  [[[
+                    if (!entity || entity.state === 'unavailable') return 'En attente';
+                    return `${entity.attributes.current_temperature || 55}°C • ${entity.state === 'on' ? 'Prêt' : 'Éco'}`;
+                  ]]]
+
+      - type: vertical-stack
+        card_mod:
+          style: |
+            :host {
+              background: transparent !important;
+              border: none !important;
+              box-shadow: none !important;
+            }
+            ha-card {
+              background: transparent !important;
+              border: none !important;
+              box-shadow: none !important;
+            }
+        view_layout:
+          grid-area: maison
+        cards:
+          - type: custom:button-card
+            name: Maison
+            template: room_section_header
+            variables:
+              subtitle: "Présences & Famille"
+            tap_action: !include popup/room_maison.yaml
+          - type: grid
+            columns: 2
+            square: false
+            card_mod:
+              style: |
+                #root {
+                  row-gap: 16px !important;
+                  column-gap: 16px !important;
+                }
+                ha-card {
+                  background: transparent !important;
+                  border: none !important;
+                  box-shadow: none !important;
+                }
+            cards:
+              - type: custom:button-card
+                entity: person.loic
+                name: Loïc
+                triggers_update:
+                  - sensor.loic_last_changed
+                tap_action: !include popup/person_loic.yaml
+                variables:
+                  retain: sensor.loic_last_changed
+                template: person
+              - type: custom:button-card
+                entity: person.emma
+                name: Emma
+                triggers_update:
+                  - sensor.emma_last_changed
+                tap_action: !include popup/person_emma.yaml
+                variables:
+                  retain: sensor.emma_last_changed
+                template: person
+                state_display: >
+                  [[[
+                    if (!entity) return variables.translate_unknown;
+                    return entity.state === 'home' ? 'Présente' : 'Absente';
+                  ]]]
+              - type: custom:button-card
                 entity: script.home_arrive
-                name: Maison
+                name: Mode Maison
                 hold_action:
                   action: none
                 template:
                   - base
                   - icon_home
+                state_display: Auto
               - type: custom:button-card
-                entity: sensor.tesla_model_3_highland_battery_level
-                name: Tesla
-                tap_action: !include popup/tesla.yaml
+                entity: switch.galaxy_tab_a_screensaver
+                name: Veille Écran
                 template:
                   - base
-                  - circle
-                  - icon_tesla
-                  - loader
-                variables:
-                  circle_input: >
-                    [[[
-                      if (!entity || entity.state === 'unavailable') return '';
-                      return parseInt(entity.state);
-                    ]]]
-                  circle_input_unit: "%"
-                state_display: >
-                  [[[
-                    const charging = states['sensor.tesla_model_3_highland_charging'];
-                    if (charging && (charging.state === 'Charging' || charging.state === 'charging')) {
-                      return 'En charge';
-                    }
-                    const range = states['sensor.tesla_model_3_highland_battery_range'];
-                    if (range && range.state) {
-                      return `${Math.round(parseFloat(range.state))} km`;
-                    }
-                    return variables.translate_unknown;
-                  ]]]
+                  - icon_imac
+                tap_action:
+                  action: toggle
 
       - type: grid
         view_layout:
           grid-area: footer
-        columns: 5
+        columns: 3
         square: false
         cards:
           - type: custom:button-card
@@ -802,8 +1037,9 @@ views:
             styles:
               card:
                 - border-radius: 999px
-                - padding: 0.88em 1.1em
+                - padding: 0.88em 1.4em
                 - background: rgba(255,255,255,0.08)
+                - justify-self: center
             tap_action:
               action: call-service
               service: script.turn_on
@@ -816,35 +1052,21 @@ views:
             styles:
               card:
                 - border-radius: 999px
-                - padding: 0.88em 1.1em
+                - padding: 0.88em 1.4em
                 - background: rgba(255,255,255,0.08)
+                - justify-self: center
             tap_action:
+              action: call-service
+              service: browser_mod.notification
+              data:
+                message: Maintenez 2s pour activer l'absence
+                duration: 3000
+            hold_action:
               action: call-service
               service: script.turn_on
               target:
                 entity_id: script.home_leave
-          - type: custom:button-card
-            icon: mdi:water-boiler
-            name: Boost ECS
-            template: icon_name
-            styles:
-              card:
-                - border-radius: 999px
-                - padding: 0.88em 1.1em
-                - background: rgba(255,255,255,0.08)
-            tap_action:
-              action: call-service
-              service: script.hot_water_boost_1h
-          - type: custom:button-card
-            icon: mdi:ev-station
-            name: Chargeur
-            template: icon_name
-            styles:
-              card:
-                - border-radius: 999px
-                - padding: 0.88em 1.1em
-                - background: rgba(255,255,255,0.08)
-            tap_action: !include popup/wallbox_charger.yaml
+              haptic: heavy
           - type: custom:button-card
             entity: switch.galaxy_tab_a_screensaver
             icon: mdi:tablet-dashboard
@@ -853,8 +1075,9 @@ views:
             styles:
               card:
                 - border-radius: 999px
-                - padding: 0.88em 1.1em
+                - padding: 0.88em 1.4em
                 - background: rgba(255,255,255,0.08)
+                - justify-self: center
             tap_action:
               action: toggle
 

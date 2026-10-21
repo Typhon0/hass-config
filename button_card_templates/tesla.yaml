@@ -1,0 +1,11 @@
+tesla:
+  template: base
+  variables:
+    state_on: >
+      [[[
+        const charging = states['sensor.tesla_model_3_highland_charging'];
+        if (!charging) return false;
+        const s = charging.state ? charging.state.toLowerCase() : '';
+        return s === 'charging';
+      ]]]
+

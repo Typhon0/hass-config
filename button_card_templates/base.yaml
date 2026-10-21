@@ -28,7 +28,16 @@ base:
   show_state: true
   show_icon: false
   state_display: >
-    [[[ if (variables.state === true) return variables.translate_unknown; ]]]
+    [[[
+      if (!entity || entity.state === 'unavailable' || entity.state === 'unknown' || variables.state === true) {
+        return 'En attente';
+      }
+      if (entity.state === 'off') return 'Éteint';
+      if (entity.state === 'on') return 'Allumé';
+      if (entity.state === 'idle') return 'En veille';
+      if (entity.state === 'heat') return 'Chauffe';
+      if (entity.state === 'auto') return 'Auto';
+    ]]]
   tap_action:
     ui_sound_tablet: |
       [[[
@@ -127,4 +136,10 @@ base:
             return variables.state_on
                 ? 'rgba(255, 255, 255, 0.85)'
                 : 'rgba(115, 115, 115, 0.25)';
+          ]]]
+      - opacity: >
+          [[[
+            return (!entity || entity.state === 'unavailable' || entity.state === 'unknown')
+                ? '0.65'
+                : '1';
           ]]]

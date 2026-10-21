@@ -13,6 +13,7 @@ colors:
   neutral-text: "rgba(255, 255, 255, 0.96)"
   neutral-text-muted: "rgba(151, 152, 156, 0.9)"
   neutral-text-dark: "#4b5254"
+  neutral-icon: "#9da0a2"
 typography:
   display:
     fontFamily: "sf display, SF Pro Display, system-ui, sans-serif"
@@ -44,6 +45,12 @@ typography:
     fontWeight: 520
     lineHeight: "1.15"
     letterSpacing: "-0.02em"
+  mono:
+    fontFamily: "sf mono, SFMono-Regular, monospace"
+    fontSize: "clamp(0.75rem, 0.95vw, 1rem)"
+    fontWeight: 450
+    lineHeight: "1.2"
+    letterSpacing: "0"
 rounded:
   sm: "0.65vw"
   md: "1.22vw"
@@ -109,6 +116,7 @@ The palette relies on deep mineral neutrals with high-contrast functional invers
 - **Primary Text** (`rgba(255, 255, 255, 0.96)`): Primary labels, room names, and large time readouts.
 - **Secondary Text** (`rgba(151, 152, 156, 0.9)`): State labels, timestamps, and secondary sensor readouts.
 - **Active Dark Text** (`#4b5254`): Foreground text inside inverted white cards.
+- **Neutral Inactive Icon** (`#9da0a2`): Default icon and glyph tone for idle states, pill borders, and footer elements.
 
 ### Danger / Alert
 - **Crimson Beacon** (`#8b3333`): Notification count badges, firmware update alerts, and security alarm triggers.
@@ -131,6 +139,7 @@ The palette relies on deep mineral neutrals with high-contrast functional invers
 - **Title** (weight `650`, `1.55vw` / `clamp(1.1rem, 1.55vw, 1.6rem)`, line-height `1.2`, letter-spacing `-0.03em`): Date subtitles, card names, and primary entities.
 - **Body** (weight `430`, `1.12vw` / `clamp(0.85rem, 1.12vw, 1.1rem)`, line-height `1.36`): Sensor readings, climate statuses, and weather copy.
 - **Label** (weight `520`, `0.9vw` / `clamp(0.7rem, 0.9vw, 0.95rem)`, line-height `1.15`, letter-spacing `-0.02em`): Subtitles, schedule next-events, and badge chips.
+- **Mono** (weight `450`, `0.95vw` / `clamp(0.75rem, 0.95vw, 1rem)`, line-height `1.2`, letter-spacing `0`): Timers, sensor telemetry data, and technical readouts.
 
 ### Named Rules
 **The Glance Scale Rule.** If a number or time reading cannot be deciphered at 2 meters on a wall tablet, it must either be scaled up to Display/Headline or removed from the default view.

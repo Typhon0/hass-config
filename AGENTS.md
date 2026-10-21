@@ -23,6 +23,10 @@ Indispensable pour l'administration et le développement :
 3. **Rechargement à chaud des configurations :** `POST /api/services/<domain>/reload` (ex. `automation`, `template`, `input_datetime`)
 4. **Lecture directe des états et attributs complets :** `GET /api/states/<entity_id>`
 
+## Documentation Métier & Références
+
+- [`DOCUMENTATION_CHAUFFAGE.md`](file:///root/config/DOCUMENTATION_CHAUFFAGE.md) : Guide de référence exhaustif du chauffage (chaudière Viessmann Vitrocrossal 300, loi d'eau 1.1, régulation, hystérésis, débridage TRV, ECS 19h-23h, anti-légionelle et télémétrie).
+
 ## Bonnes pratiques pour l'agent
 
 - **Validation systématique :** Toujours appeler `/api/config/core/check_config` après modification d'un fichier YAML avant de finaliser la réponse.

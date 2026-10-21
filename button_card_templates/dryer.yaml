@@ -1,0 +1,110 @@
+dryer:
+  template:
+    - base
+    - circle
+    - icon_dryer
+    - loader
+  tap_action: !include ../popup/dryer.yaml
+  hold_action:
+    action: more-info
+  triggers_update:
+    - sensor.seche_linge
+    - sensor.seche_linge_run_state
+    - sensor.seche_linge_process_state
+    - sensor.seche_linge_remaining_time
+    - sensor.seche_linge_countdown_time
+    - binary_sensor.seche_linge_dry_completed
+  variables:
+    state_on: >
+      [[[
+        if (!entity) return false;
+        const attrs = entity.attributes || {};
+        const runState = (attrs.run_state || '').toLowerCase();
+        const completed = attrs.run_completed === 'on' || states['binary_sensor.seche_linge_dry_completed']?.state === 'on';
+        const isRunning = entity.state === 'on' && runState !== 'veille' && runState !== 'éteint' && runState !== 'standby' && runState !== '' && runState !== '-';
+        return isRunning || completed;
+      ]]]
+    circle_input: >
+      [[[
+        if (!entity) return '';
+        const attrs = entity.attributes || {};
+        const completed = attrs.run_completed === 'on' || states['binary_sensor.seche_linge_dry_completed']?.state === 'on';
+        if (completed) return 100;
+
+        const remain = (attrs.remain_time && attrs.remain_time !== '0:00:00') 
+          ? attrs.remain_time 
+          : (states['sensor.seche_linge_remaining_time']?.state || states['sensor.seche_linge_countdown_time']?.state || '');
+
+        if (remain && !['0:00:00', '00:00:00', '0', '-', 'unknown', 'unavailable'].includes(remain)) {
+          const parts = String(remain).split(':');
+          if (parts.length >= 2) {
+            const h = parseInt(parts[0], 10) || 0;
+            const m = parseInt(parts[1], 10) || 0;
+            const total = h * 60 + m;
+            if (total > 0) {
+              return h > 0 ? (m > 0 ? `${h}h${String(m).padStart(2,'0')}` : `${h}h`) : total;
+            }
+          } else if (!isNaN(parseInt(remain, 10))) {
+            const total = parseInt(remain, 10);
+            if (total > 0) return total;
+          }
+        }
+        return '';
+      ]]]
+    circle_input_unit: >
+      [[[
+        if (!entity) return '';
+        const attrs = entity.attributes || {};
+        const completed = attrs.run_completed === 'on' || states['binary_sensor.seche_linge_dry_completed']?.state === 'on';
+        if (completed) return '%';
+
+        const remain = (attrs.remain_time && attrs.remain_time !== '0:00:00') 
+          ? attrs.remain_time 
+          : (states['sensor.seche_linge_remaining_time']?.state || states['sensor.seche_linge_countdown_time']?.state || '');
+
+        if (remain && !['0:00:00', '00:00:00', '0', '-', 'unknown', 'unavailable'].includes(remain)) {
+          const parts = String(remain).split(':');
+          if (parts.length >= 2) {
+            const h = parseInt(parts[0], 10) || 0;
+            return h > 0 ? '' : 'm';
+          }
+          return 'm';
+        }
+        return '';
+      ]]]
+  state_display: >
+    [[[
+      if (!entity) return 'Indisponible';
+      const attrs = entity.attributes || {};
+      const completed = attrs.run_completed === 'on' || states['binary_sensor.seche_linge_dry_completed']?.state === 'on';
+      if (completed) return 'Terminé';
+
+      const remain = (attrs.remain_time && attrs.remain_time !== '0:00:00') 
+        ? attrs.remain_time 
+        : (states['sensor.seche_linge_remaining_time']?.state || states['sensor.seche_linge_countdown_time']?.state || '');
+
+      let timeText = '';
+      if (remain && !['0:00:00', '00:00:00', '0', '-', 'unknown', 'unavailable'].includes(remain)) {
+        const parts = String(remain).split(':');
+        if (parts.length >= 2) {
+          const h = parseInt(parts[0], 10) || 0;
+          const m = parseInt(parts[1], 10) || 0;
+          timeText = h > 0 ? (m > 0 ? `${h}h${String(m).padStart(2,'0')}` : `${h}h`) : `${m} min`;
+        } else if (!isNaN(parseInt(remain, 10))) {
+          const m = parseInt(remain, 10);
+          timeText = `${m} min`;
+        }
+      }
+
+      const runState = attrs.run_state || states['sensor.seche_linge_run_state']?.state || '';
+      const processState = attrs.process_state || states['sensor.seche_linge_process_state']?.state || '';
+
+      if (entity.state === 'on') {
+        const rLower = runState.toLowerCase();
+        if (rLower === 'veille' || rLower === 'standby') return 'Veille';
+        const label = processState || runState || 'En cours';
+        return timeText ? `${label} • ${timeText}` : label;
+      }
+
+      return 'Éteint';
+    ]]]

@@ -1,0 +1,71 @@
+action: fire-dom-event
+browser_mod:
+  service: browser_mod.popup
+  data:
+    title: Sèche-linge
+    size: normal
+    card_mod:
+      style:
+        ha-dialog$: |
+          div.mdc-dialog {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+          }
+          div.mdc-dialog__surface {
+            border-radius: 28px !important;
+            max-width: min(92vw, 540px) !important;
+            width: min(92vw, 540px) !important;
+          }
+    content:
+      type: vertical-stack
+      cards:
+        # --- État & Cycle en cours ---
+        - type: entities
+          card_mod:
+            style: |
+              #states { padding-top: 0.5em; padding-bottom: 0em; }
+          entities:
+            - entity: sensor.seche_linge
+              name: État de l'appareil
+            - entity: sensor.seche_linge_run_state
+              name: Statut du cycle
+            - entity: sensor.seche_linge_process_state
+              name: Étape en cours
+            - entity: sensor.seche_linge_remaining_time
+              name: Temps restant
+            - entity: sensor.seche_linge_initial_time
+              name: Durée initiale
+            - entity: binary_sensor.seche_linge_dry_completed
+              name: Cycle terminé
+
+        # --- Commandes ---
+        - type: entities
+          title: Commandes
+          show_header_toggle: false
+          card_mod:
+            style: |
+              #states { padding-top: 0.5em; padding-bottom: 0em; }
+          entities:
+            - entity: switch.seche_linge_power
+              name: Alimentation
+            - entity: button.seche_linge_remote_start
+              name: Démarrage à distance
+            - entity: button.seche_linge_pause
+              name: Mettre en pause
+
+        # --- Paramètres & Sécurité ---
+        - type: entities
+          title: Options du cycle
+          show_header_toggle: false
+          card_mod:
+            style: |
+              #states { padding-top: 0.5em; padding-bottom: 0.5em; }
+          entities:
+            - entity: sensor.seche_linge_current_course
+              name: Programme
+            - entity: sensor.seche_linge_dry_level
+              name: Niveau de séchage
+            - entity: binary_sensor.seche_linge_child_lock
+              name: Sécurité enfant
+

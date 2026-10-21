@@ -102,6 +102,67 @@ template:
           temperature_chaudiere: "{{ states('sensor.vitrocrossal_300_cu3a_boiler_temperature') }}"
           modulation_bruleur: "{{ states('sensor.vitrocrossal_300_cu3a_burner_modulation') }}"
 
+      - name: "Vitrocrossal Depart Recommande Loi d Eau"
+        unique_id: vitrocrossal_flow_target_recommended
+        unit_of_measurement: "°C"
+        device_class: temperature
+        icon: mdi:chart-bell-curve-cumulative
+        state: >
+          {% set ext = states('sensor.vitrocrossal_300_cu3a_outside_temperature') | float(8) %}
+          {% set slope = states('number.vitrocrossal_300_cu3a_heating_curve_slope') | float(1.1) %}
+          {% set shift = states('number.vitrocrossal_300_cu3a_heating_curve_shift') | float(0) %}
+          {% set dt = max(0.0, 20.0 - ext) %}
+          {% set target = 20.0 + slope * (0.68 * dt + 0.007 * (dt ** 2)) + shift %}
+          {{ target | round(1) }}
+        attributes:
+          pente: "{{ states('number.vitrocrossal_300_cu3a_heating_curve_slope') }}"
+          parallele: "{{ states('number.vitrocrossal_300_cu3a_heating_curve_shift') }}"
+          temperature_exterieure: "{{ states('sensor.vitrocrossal_300_cu3a_outside_temperature') }}"
+          temperature_depart_reelle: "{{ states('sensor.vitrocrossal_300_cu3a_supply_temperature') }}"
+          reference_0_degres: "38.0"
+          formule: "Viessmann Loi d'eau Vitotronic (Pente 1.1 -> 38°C à 0°C ext)"
+
+      - name: "Vitrocrossal Conseil Loi d Eau"
+        unique_id: vitrocrossal_heating_curve_advisor
+        icon: mdi:head-lightbulb-outline
+        state: >
+          {% set ext = states('sensor.vitrocrossal_300_cu3a_outside_temperature') | float(8) %}
+          {% set salon = states('sensor.thermo_2_temperature') | float(19) %}
+          {% set chambre = states('sensor.thermo_1_temperature') | float(17) %}
+          {% set heating_on = is_state('climate.vitrocrossal_300_cu3a_heating', 'heat') or is_state_attr('climate.vitrocrossal_300_cu3a_heating', 'active_vicare_mode', 'forcedNormal') %}
+          {% if ext <= 0 and (salon < 18.2 or chambre < 16.2) and heating_on %}
+            ❄️ Recommander Pente 1.2 (Grand froid)
+          {% elif ext > 5 and (salon < 18.2 or chambre < 16.2) and heating_on %}
+            🍂 Recommander Parallèle +1 (Demi-saison)
+          {% elif ext < -3 %}
+            👀 Vigilance Grand Froid (Surveiller)
+          {% else %}
+            🟢 Réglage optimal (Pente 1.1 / Parallèle 0)
+          {% endif %}
+        attributes:
+          recommandation_action: >
+            {% set ext = states('sensor.vitrocrossal_300_cu3a_outside_temperature') | float(8) %}
+            {% set salon = states('sensor.thermo_2_temperature') | float(19) %}
+            {% set chambre = states('sensor.thermo_1_temperature') | float(17) %}
+            {% if ext <= 0 and (salon < 18.2 or chambre < 16.2) %}
+              Passer la pente ViCare de 1.1 à 1.2 pour compenser les déperditions accrues par gel.
+            {% elif ext > 5 and (salon < 18.2 or chambre < 16.2) %}
+              Passer le parallèle ViCare de 0 à +1 ou +2 pour rehausser la courbe en demi-saison.
+            {% elif ext < -3 %}
+              Grand froid détecté. Si la maison peine à chauffer, passez la pente à 1.2. Sinon, conservez 1.1.
+            {% else %}
+              Aucun changement requis. La pente 1.1 est idéale et garantit plus de 95% de condensation.
+            {% endif %}
+          zone_climatique: >
+            {% set ext = states('sensor.vitrocrossal_300_cu3a_outside_temperature') | float(8) %}
+            {% if ext >= 12 %}Douceur (> 12°C)
+            {% elif ext >= 5 %}Demi-saison (5°C à 12°C)
+            {% elif ext >= 0 %}Frais / Proche du gel (0°C à 5°C)
+            {% elif ext >= -5 %}Gel (-5°C à 0°C)
+            {% else %}Grand froid (< -5°C)
+            {% endif %}
+          aide_memoire: "• Demi-saison (> 5°C) & froid : monter parallèle à +1\n• Grand froid (< 0°C) & froid : monter pente à 1.2\n• Trop chaud par grand froid : baisser pente à 1.0"
+
 automation:
   - alias: "Vitrocrossal Alerte Court Cycle"
     id: vitrocrossal_alerte_court_cycle

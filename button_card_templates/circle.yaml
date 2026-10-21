@@ -7,7 +7,12 @@ circle:
       - --c-fill-color-off: rgba(255,255,255,0.04)
       - --c-stroke-width: 2.3
       - --c-stroke-width-dragging: 4
-      - --c-font-color: '#97989c'
+      - --c-font-color: >
+          [[[
+            return variables.state_on
+                ? '#34383a'
+                : '#e0e2e4';
+          ]]]
       - --c-font-size: 12px
       - --c-unit-font-size: 10.5px
       - --c-font-weight: 700

@@ -613,11 +613,67 @@ icon_climate:
         - width: 78%
         - margin-left: -10%
         - fill: >
-            [[[ return variables.state === 'cool' || variables.state === 'fan_only' ? '#5daeea' : '#9da0a2'; ]]]
+            [[[ return (variables.state_on || variables.state === 'heat') ? '#3182b7' : '#9da0a2'; ]]]
   custom_fields:
     icon: >
       <svg viewBox="0 0 50 50">
-        <path d="M36.8 1.2v1.7a5.34 5.34 0 0 1-5.3 5.3H18.4a5.34 5.34 0 0 1-5.3-5.3V1.2c-2.6.4-4.7 2.8-4.7 5.6v36.5c0 3.1 2.6 5.7 5.7 5.7h21.8c3.1 0 5.7-2.6 5.7-5.7V6.8c0-2.8-2.1-5.2-4.8-5.6zm-1.7 35.6c-.2 0-.4 0-.5-.1-.4-.1-1.2-.2-2.4-.6-.5-.2-.8-.3-1.2-.4-.3-.1-.7-.3-1.4-.5-1-.4-1.5-.5-1.9-.6-.5-.1-1.1-.2-1.9-.2s-1.4.2-1.9.4c-1 .3-1.8.7-2.1.9l-.6.3a9.75 9.75 0 0 1-1.4.6c-.3.1-.9.3-1.6.3h-.3c-.4 0-1 0-2-.2-.3-.1-.6-.1-.8-.2v-2.7l1.3.3c.5.1 1.3.2 1.7.2.5 0 .9-.2 1.1-.2.4-.1.6-.2 1-.4.2-.1.4-.2.7-.4.4-.2 1.3-.7 2.5-1 .6-.2 1.4-.4 2.5-.5s2 .1 2.5.2c.6.1 1.2.3 2.2.7l1.5.5c.3.1.6.2 1 .4 1 .3 1.8.5 2.1.5h.1v2.7zm0-6c-.2 0-.4 0-.5-.1-.4-.1-1.2-.2-2.4-.6-.5-.2-.8-.3-1.2-.4-.3-.1-.7-.3-1.4-.5-1-.4-1.5-.5-1.9-.6-.5-.1-1.1-.2-1.9-.2s-1.4.2-1.9.4c-1 .3-1.8.7-2.1.9l-.6.3a9.75 9.75 0 0 1-1.4.6c-.3.1-.9.3-1.6.3h-.3c-.4 0-1 0-2-.2-.3-.1-.6-.1-.8-.2v-2.7l1.3.3c.5.1 1.3.2 1.7.2.5 0 .9-.2 1.1-.2.4-.1.6-.2 1-.4.2-.1.4-.2.7-.4.4-.2 1.3-.7 2.5-1 .6-.2 1.4-.4 2.5-.5s2 .1 2.5.2c.6.1 1.2.3 2.2.7l1.5.5c.3.1.6.2 1 .4 1 .3 1.8.5 2.1.5h.1v2.7zm0-6c-.2 0-.4 0-.5-.1-.4-.1-1.2-.2-2.4-.6-.5-.2-.8-.3-1.2-.4-.3-.1-.7-.3-1.4-.5-1-.4-1.5-.5-1.9-.6-.5-.1-1.1-.2-1.9-.2s-1.4.2-1.9.4c-1 .3-1.8.7-2.1.9l-.6.3c-.4.2-.8.4-1.4.6-.3.1-.9.3-1.6.3h-.3c-.4 0-1 0-2-.2-.3-.1-.6-.1-.8-.2v-2.7l1.3.3c.5.1 1.3.2 1.7.2.5 0 .9-.2 1.1-.2.4-.1.6-.2 1-.4.2-.1.4-.2.7-.4.4-.2 1.3-.7 2.5-1 .6-.2 1.4-.4 2.5-.5s2 .1 2.5.2c.6.1 1.2.3 2.2.7l1.5.5c.3.1.6.2 1 .4 1 .3 1.8.5 2.1.5h.1v2.7zM15.7 1.9v-.8h18.6V3c0 1.5-1.2 2.8-2.8 2.8H18.4c-1.5 0-2.8-1.2-2.8-2.8V1.9z"/>
+        <path d="M10 15h30c1.7 0 3 1.3 3 3v18c0 1.7-1.3 3-3 3H10c-1.7 0-3-1.3-3-3V18c0-1.7 1.3-3 3-3zm4 3v18h3V18h-3zm7 0v18h3V18h-3zm7 0v18h3V18h-3zm7 0v18h3V18h-3zM18 10c0-1.5 1.5-2.5 1.5-3.5s-1.5-1.5-1.5-2.5h2c0 1.5 1.5 2.5 1.5 3.5s-1.5 1.5-1.5 2.5h-2zm7 0c0-1.5 1.5-2.5 1.5-3.5s-1.5-1.5-1.5-2.5h2c0 1.5 1.5 2.5 1.5 3.5s-1.5 1.5-1.5 2.5h-2zm7 0c0-1.5 1.5-2.5 1.5-3.5s-1.5-1.5-1.5-2.5h2c0 1.5 1.5 2.5 1.5 3.5s-1.5 1.5-1.5 2.5h-2z"/>
+      </svg>
+
+icon_thermometer:
+  styles:
+    custom_fields:
+      icon:
+        - width: 74%
+        - margin-left: -8%
+        - fill: >
+            [[[ return variables.state_on ? '#3182b7' : '#9da0a2'; ]]]
+  custom_fields:
+    icon: >
+      <svg viewBox="0 0 50 50">
+        <path d="M25 6a4.5 4.5 0 0 0-4.5 4.5v19.4a7.5 7.5 0 1 0 9 0V10.5A4.5 4.5 0 0 0 25 6zm0 3a1.5 1.5 0 0 1 1.5 1.5v20.8l.5.4a4.5 4.5 0 1 1-4 0l.5-.4V10.5A1.5 1.5 0 0 1 25 9zm-1 8h2v8h-2V17zm0 10.5a3 3 0 1 0 2 0v-.5h-2v.5zM33 13h4v2h-4v-2zm0 6h3v2h-3v-2zm0 6h4v2h-4v-2z"/>
+      </svg>
+
+icon_radiator:
+  styles:
+    custom_fields:
+      icon:
+        - width: 78%
+        - margin-left: -10%
+        - fill: >
+            [[[ return (variables.state_on || variables.state === 'heat') ? '#3182b7' : '#9da0a2'; ]]]
+  custom_fields:
+    icon: >
+      <svg viewBox="0 0 50 50">
+        <path d="M10 15h30c1.7 0 3 1.3 3 3v18c0 1.7-1.3 3-3 3H10c-1.7 0-3-1.3-3-3V18c0-1.7 1.3-3 3-3zm4 3v18h3V18h-3zm7 0v18h3V18h-3zm7 0v18h3V18h-3zm7 0v18h3V18h-3zM18 10c0-1.5 1.5-2.5 1.5-3.5s-1.5-1.5-1.5-2.5h2c0 1.5 1.5 2.5 1.5 3.5s-1.5 1.5-1.5 2.5h-2zm7 0c0-1.5 1.5-2.5 1.5-3.5s-1.5-1.5-1.5-2.5h2c0 1.5 1.5 2.5 1.5 3.5s-1.5 1.5-1.5 2.5h-2zm7 0c0-1.5 1.5-2.5 1.5-3.5s-1.5-1.5-1.5-2.5h2c0 1.5 1.5 2.5 1.5 3.5s-1.5 1.5-1.5 2.5h-2z"/>
+      </svg>
+
+icon_boiler_flame:
+  styles:
+    custom_fields:
+      icon:
+        - width: 76%
+        - margin-left: -8%
+        - fill: >
+            [[[ return variables.state_on ? '#3182b7' : '#9da0a2'; ]]]
+  custom_fields:
+    icon: >
+      <svg viewBox="0 0 50 50">
+        <path d="M12 6h26c2.2 0 4 1.8 4 4v30c0 2.2-1.8 4-4 4H12c-2.2 0-4-1.8-4-4V10c0-2.2 1.8-4 4-4zm0 3c-.6 0-1 .4-1 1v30c0 .6.4 1 1 1h26c.6 0 1-.4 1-1V10c0-.6-.4-1-1-1H12zm13 8c1.5 3.5 6 7.5 6 13a6 6 0 1 1-12 0c0-5.5 4.5-9.5 6-13zm0 13a2.5 2.5 0 0 0-2.5 2.5c0 2 2.5 4 2.5 4s2.5-2 2.5-4a2.5 2.5 0 0 0-2.5-2.5z"/>
+      </svg>
+
+icon_water_boiler:
+  styles:
+    custom_fields:
+      icon:
+        - width: 74%
+        - margin-left: -8%
+        - fill: >
+            [[[ return variables.state_on ? '#3182b7' : '#9da0a2'; ]]]
+  custom_fields:
+    icon: >
+      <svg viewBox="0 0 50 50">
+        <path d="M25 4c-6.6 0-12 3.6-12 8v26c0 4.4 5.4 8 12 8s12-3.6 12-8V12c0-4.4-5.4-8-12-8zm0 3c5 0 9 2.5 9 5s-4 5-9 5-9-2.5-9-5 4-5 9-5zm9 31c0 2.2-4 4.5-9 4.5s-9-2.3-9-4.5V18.8c2.6 1.8 5.6 2.7 9 2.7s6.4-.9 9-2.7V38zm-11-13h4v4h-4v-4zm0 6h4v2h-4v-2z"/>
       </svg>
 
 icon_bathroom:
@@ -1051,11 +1107,17 @@ icon_wallbox:
       ]]]
 
 icon_tesla:
+  styles:
+    custom_fields:
+      icon:
+        - width: 70%
+        - margin-left: -3%
+        - margin-top: 3%
   custom_fields:
     icon: >
       [[[
         const chargingSensor = states['sensor.tesla_model_3_highland_charging'];
-        const isCharging = chargingSensor && (chargingSensor.state === 'Charging' || chargingSensor.state === 'charging');
+        const isCharging = (chargingSensor && chargingSensor.state && chargingSensor.state.toLowerCase() === 'charging') || variables.state_on;
         const stateClass = isCharging ? 'charging' : 'idle';
 
         return `
@@ -1068,21 +1130,81 @@ icon_tesla:
                 fill: #9da0a2;
               }
               .charging .tesla-path {
-                fill: #34c759;
-                animation: tesla-pulse 1.6s infinite ease-in-out;
+                fill: #2979b6;
+                animation: charge-pulse 1.8s infinite ease-in-out;
               }
-              @keyframes tesla-pulse {
+              @keyframes charge-pulse {
                 0% { opacity: 1; }
-                50% { opacity: 0.55; }
+                50% { opacity: 0.7; }
                 100% { opacity: 1; }
               }
             </style>
             <g class="${stateClass}">
-              <path class="tesla-path" d="M12 4.15c2.05 0 3.96.36 5.75 1.02.39.15.82-.06.97-.45l.74-2.02a.81.81 0 0 0-.46-1.03C16.63 1.05 14.4.82 12 .82s-4.63.23-7 .86a.81.81 0 0 0-.46 1.03l.74 2.02c.14.39.58.59.97.45 1.79-.66 3.7-1.03 5.75-1.03zm9.52 2.6a.81.81 0 0 0-.82.11C18.37 8.8 15.38 9.87 12 9.87s-6.36-1.07-8.7-3.01a.81.81 0 0 0-.82-.11L.58 7.8a.81.81 0 0 0-.36.96c2.47 6.79 7.23 11.23 11.77 13.91.31.19.7.19 1.01 0 4.54-2.68 9.3-7.12 11.77-13.91a.81.81 0 0 0-.36-.96l-1.9-1.05z"/>
+              <path class="tesla-path" d="M12 5.362l2.475-3.026s4.245.09 8.471 2.054c-1.082 1.636-3.231 2.438-3.231 2.438-.146-1.439-1.154-1.79-4.354-1.79L12 24 8.619 5.034c-3.18 0-4.188.354-4.335 1.792 0 0-2.146-.795-3.229-2.43C5.28 2.431 9.525 2.34 9.525 2.34L12 5.362l-.004.002H12v-.002zm0-3.899c3.415-.03 7.326.528 11.328 2.28.535-.968.672-1.395.672-1.395C19.625.612 15.528.015 12 0 8.472.015 4.375.61 0 2.349c0 0 .195.525.672 1.396C4.674 1.989 8.585 1.435 12 1.46v.003z"/>
             </g>
           </svg>
         `;
       ]]]
+
+icon_fridge:
+  styles:
+    custom_fields:
+      icon:
+        - width: 72%
+        - margin-left: -8%
+        - fill: >
+            [[[
+              let door = states['binary_sensor.refrigerateur_door_open'];
+              return (door && door.state === 'on') ? '#8b3333' : '#9da0a2';
+            ]]]
+  custom_fields:
+    icon: >
+      <svg viewBox="0 0 50 50">
+        <path d="M14 2h22c2.2 0 4 1.8 4 4v13H10V6c0-2.2 1.8-4 4-4zm-1 7h3v5h-3V9zm-3 12h30v23c0 2.2-1.8 4-4 4H14c-2.2 0-4-1.8-4-4V21zm3 5h3v9h-3V26z"/>
+      </svg>
+
+icon_dryer:
+  styles:
+    custom_fields:
+      icon:
+        - width: 72%
+        - margin-left: -5%
+        - fill: >
+            [[[ return variables.state_on ? '#3182b7' : '#9da0a2'; ]]]
+  custom_fields:
+    icon: >
+      [[[
+        const isRunning = variables.state_on;
+        const stateClass = isRunning ? 'running' : 'idle';
+
+        return `
+          <svg viewBox="0 0 50 50">
+            <style>
+              .dryer-svg {
+                transition: stroke 0.3s ease, fill 0.3s ease;
+              }
+              .running .drum-spin {
+                animation: dryer-spin 2.2s linear infinite;
+              }
+              @keyframes dryer-spin {
+                from { transform: rotate(0deg); }
+                to { transform: rotate(360deg); }
+              }
+            </style>
+            <g class="${stateClass} dryer-svg">
+              <path d="M11 5h28c3.3 0 6 2.7 6 6v28c0 3.3-2.7 6-6 6H11c-3.3 0-6-2.7-6-6V11c0-3.3 2.7-6 6-6zm0 3c-1.7 0-3 1.3-3 3v28c0 1.7 1.3 3 3 3h28c1.7 0 3-1.3 3-3V11c0-1.7-1.3-3-3-3H11z"/>
+              <line x1="8" y1="14" x2="42" y2="14" stroke="currentColor" stroke-width="1.8"/>
+              <circle cx="14" cy="9.5" r="2"/>
+              <rect x="26" y="8" width="12" height="3" rx="1.5"/>
+              <circle cx="25" cy="29" r="10.5" fill="none" stroke="currentColor" stroke-width="2.4"/>
+              <g class="drum-spin" style="transform-origin: 25px 29px;">
+                <path d="M25 22.5c0 2-1.3 3.8-2.5 5m5-5c0 2 1.3 3.8 2.5 5m-7.5 2.5c2 0 3.8 1.3 5 2.5m-5-5c2 0 3.8-1.3 5-2.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
+              </g>
+            </g>
+          </svg>
+        `;
+      ]]]
+
 
 
 

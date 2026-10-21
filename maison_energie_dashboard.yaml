@@ -81,6 +81,8 @@ views:
                 name: Coût officiel Gazpar (Hier)
               - entity: sensor.gaz_dju_jour
                 name: DJU (Degrés-Jours Froid)
+              - entity: sensor.vitrocrossal_depart_recommande_loi_d_eau
+                name: Départ d'eau recommandé (Loi d'eau)
               - entity: sensor.gaz_intensite_energetique
                 name: Intensité énergétique
 
@@ -379,7 +381,7 @@ views:
                 icon_color: purple
                 layout: horizontal
 
-          # Jauges Modulation & Départ
+          # Jauges Modulation, Cible Recommandée & Départ Réel
           - type: horizontal-stack
             cards:
               - type: gauge
@@ -395,8 +397,20 @@ views:
                   red: 85
 
               - type: gauge
+                entity: sensor.vitrocrossal_depart_recommande_loi_d_eau
+                name: Cible Loi d'Eau
+                min: 20
+                max: 60
+                unit: "°C"
+                needle: true
+                severity:
+                  green: 20
+                  yellow: 45
+                  red: 55
+
+              - type: gauge
                 entity: sensor.vitrocrossal_300_cu3a_supply_temperature
-                name: Départ Chaudière
+                name: Départ Réel
                 min: 20
                 max: 85
                 unit: "°C"
@@ -427,11 +441,40 @@ views:
               - entity: sensor.vitrocrossal_bruleur_temps_ecs_jour
                 name: Durée de chauffe ECS du jour
 
+          # Guide & Conseil Dynamique Loi d'Eau
+          - type: custom:mushroom-template-card
+            primary: "{{ states('sensor.vitrocrossal_conseil_loi_d_eau') }}"
+            secondary: "{{ state_attr('sensor.vitrocrossal_conseil_loi_d_eau', 'recommandation_action') }}"
+            icon: mdi:head-lightbulb-outline
+            icon_color: >-
+              {% if 'optimal' in states('sensor.vitrocrossal_conseil_loi_d_eau') %}
+                green
+              {% elif 'Vigilance' in states('sensor.vitrocrossal_conseil_loi_d_eau') %}
+                amber
+              {% else %}
+                blue
+              {% endif %}
+            multiline_secondary: true
+            layout: horizontal
+
+          - type: markdown
+            title: Aide-mémoire Réglage Loi d'Eau ViCare
+            content: >
+              **Zone météo en direct :** {{ state_attr('sensor.vitrocrossal_conseil_loi_d_eau', 'zone_climatique') }} (Sonde ext. {{ states('sensor.vitrocrossal_300_cu3a_outside_temperature') }}°C)
+
+              - **Si froid en demi-saison (+5°C à +12°C) :** Conserver pente 1.1, monter le **parallèle à +1**.
+              - **Si froid par grand froid (< 0°C) :** Conserver parallèle 0, monter la **pente à 1.2**.
+              - **Si trop chaud par grand froid :** Baisser la **pente à 1.0**.
+
           # Réglages Loi d'Eau ViCare (Pleine Largeur)
           - type: entities
             title: Réglages Courbe de Chauffe (ViCare)
             show_header_toggle: false
             entities:
+              - entity: sensor.vitrocrossal_depart_recommande_loi_d_eau
+                name: Départ d'eau recommandé (temps réel)
+              - entity: sensor.vitrocrossal_300_cu3a_outside_temperature
+                name: Température extérieure détectée
               - entity: number.vitrocrossal_300_cu3a_heating_curve_slope
                 name: Pente courbe (Loi d'eau)
               - entity: number.vitrocrossal_300_cu3a_heating_curve_shift
@@ -445,14 +488,17 @@ views:
 
           # Graphique 24h Températures
           - type: custom:mini-graph-card
-            name: Températures Chaudière (Dernières 24h)
+            name: Températures Chaudière & Loi d'Eau (24h)
             hours_to_show: 24
             points_per_hour: 4
             line_width: 3
             entities:
               - entity: sensor.vitrocrossal_300_cu3a_supply_temperature
-                name: Départ
+                name: Départ Réel
                 color: "#ff5722"
+              - entity: sensor.vitrocrossal_depart_recommande_loi_d_eau
+                name: Cible Recommandée (Loi d'eau)
+                color: "#ffb300"
               - entity: sensor.vitrocrossal_300_cu3a_boiler_temperature
                 name: Corps de chauffe
                 color: "#f44336"

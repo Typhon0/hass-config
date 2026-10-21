@@ -69,7 +69,7 @@ input_number:
     step: 1
     unit_of_measurement: "°C"
     mode: box
-    initial: 55
+    initial: 50
 
 input_datetime:
   vicare_last_mode_change:
@@ -96,7 +96,7 @@ binary_sensor:
       chute_temperature_chambre:
         entity_id: sensor.thermo_1_temperature
         sample_duration: 360
-        min_gradient: -0.0017
+        min_gradient: -0.0050
         device_class: opening
       chute_temperature_salon:
         entity_id: sensor.thermo_2_temperature
@@ -120,7 +120,7 @@ script:
             data:
               value: >-
                 {{
-                  states('number.vitrocrossal_300_cu3a_dhw_temperature') | float(55)
+                  states('number.vitrocrossal_300_cu3a_dhw_temperature') | float(50)
                 }}
 
       - action: water_heater.set_temperature
@@ -186,7 +186,7 @@ automation:
           vicare_mode_current: "{{ state_attr('climate.vitrocrossal_300_cu3a_heating', 'active_vicare_mode') }}"
           thermostat1_target_current: "{{ state_attr('climate.thermostat1', 'temperature') | float(0) }}"
           thermostat1_hvac_current: "{{ states('climate.thermostat1') }}"
-          deadband: 0.3
+          deadband: 0.5
           is_heating_now: "{{ vicare_mode_current == 'forcedNormal' }}"
 
           bedroom_target: >-
@@ -218,7 +218,12 @@ automation:
           salon_cutoff: >-
             {{ (salon_target | float) if is_heating_now else ((salon_target | float) - deadband) }}
 
-          aeration_chambre_active: "{{ is_state('timer.aeration_chambre', 'active') }}"
+          aeration_chambre_active: >-
+            {{
+              is_state('timer.aeration_chambre', 'active')
+              and (now().hour >= 8 and now().hour < 21)
+              and not is_state('schedule.schedule_chauffage_chambre', 'on')
+            }}
           aeration_salon_active: "{{ is_state('timer.aeration_salon', 'active') }}"
 
           bedroom_needs_heat: >-
@@ -247,10 +252,23 @@ automation:
               else 9999
             }}
           can_change_vicare_mode: >-
-            {{
-              (not someone_home)
-              or (seconds_since_change | float(9999) >= 600)
-            }}
+            {% if not someone_home %}
+              true
+            {% elif is_heating_now and desired_vicare_mode == 'dhw' %}
+              {# Pour couper le chauffage, attendre au moins 15 min (900s) de chauffe continue #}
+              {{ seconds_since_change | float(9999) >= 900 }}
+            {% else %}
+              {# Pour démarrer le chauffage après un arrêt, attendre au moins 10 min (600s) anti-rebond #}
+              {{ seconds_since_change | float(9999) >= 600 }}
+            {% endif %}
+
+          # Consigne TRV : débridée (+2°C) en demande pour garder le clapet 100% ouvert et éviter la surchauffe chaudière
+          thermostat1_target_desired: >-
+            {% if bedroom_needs_heat %}
+              {{ (bedroom_target | float) + 2.0 }}
+            {% else %}
+              {{ bedroom_target | float }}
+            {% endif %}
 
       # 1. On pousse la bonne consigne sur le TRV de la chambre
       - if:
@@ -265,13 +283,22 @@ automation:
 
       - if:
           - condition: template
-            value_template: "{{ (thermostat1_target_current - (bedroom_target | float)) | abs > 0.2 }}"
+            value_template: "{{ (thermostat1_target_current - (thermostat1_target_desired | float)) | abs > 0.2 }}"
         then:
           - action: climate.set_temperature
             target:
               entity_id: climate.thermostat1
             data:
-              temperature: "{{ bedroom_target | float }}"
+              temperature: "{{ thermostat1_target_desired | float }}"
+
+      - if:
+          - condition: state
+            entity_id: switch.thermostat1_window_detection
+            state: "on"
+        then:
+          - action: switch.turn_off
+            target:
+              entity_id: switch.thermostat1_window_detection
 
       # 2. Gestion chaudière
       # forcedNormal = chauffage actif
@@ -356,14 +383,19 @@ automation:
 
     action:
       - variables:
-          restore_temp: "{{ states('input_number.hot_water_boost_restore_temp') | float(55) }}"
-          dhw_target: "{{ states('number.vitrocrossal_300_cu3a_dhw_temperature') | float(55) }}"
+          restore_temp: "{{ states('input_number.hot_water_boost_restore_temp') | float(50) }}"
 
       - action: water_heater.set_temperature
         target:
           entity_id: water_heater.vitrocrossal_300_cu3a_domestic_hot_water
         data:
-          temperature: "{{ max(restore_temp, dhw_target) }}"
+          temperature: "{{ restore_temp }}"
+
+      - action: number.set_value
+        target:
+          entity_id: number.vitrocrossal_300_cu3a_dhw_temperature
+        data:
+          value: "{{ restore_temp }}"
 
       - choose:
           - conditions:
@@ -384,6 +416,63 @@ automation:
                   title: "☕ Boost ECS annulé"
                   message: "Boost stoppé manuellement. Retour de la cible ECS à {{ restore_temp }}°C."
 
+  - alias: "Cycle Anti-Légionelle Hebdomadaire ECS"
+    id: cycle_anti_legionelle_hebdomadaire_ecs
+    mode: single
+    trigger:
+      # Démarrage le dimanche à 19h00 (début de la plage de chauffe ViCare 19h-22h)
+      - platform: time
+        at: "19:00:00"
+        id: start_legionella
+      # Fin du cycle à 20h30 (après 1h30 à 60°C)
+      - platform: time
+        at: "20:30:00"
+        id: end_legionella
+    condition:
+      # Uniquement le dimanche
+      - condition: time
+        weekday:
+          - sun
+    action:
+      - choose:
+          - conditions:
+              - condition: trigger
+                id: start_legionella
+            sequence:
+              - action: water_heater.set_temperature
+                target:
+                  entity_id: water_heater.vitrocrossal_300_cu3a_domestic_hot_water
+                data:
+                  temperature: 60
+              - action: number.set_value
+                target:
+                  entity_id: number.vitrocrossal_300_cu3a_dhw_temperature
+                data:
+                  value: 60
+              - action: notify.mobile_app_iphone_de_loic
+                data:
+                  title: "🛡️ Cycle Anti-Légionelle Hebdomadaire"
+                  message: "Montée thermique du ballon d'eau chaude lancée (cible 60°C) jusqu'à 20h30."
+
+          - conditions:
+              - condition: trigger
+                id: end_legionella
+            sequence:
+              - action: water_heater.set_temperature
+                target:
+                  entity_id: water_heater.vitrocrossal_300_cu3a_domestic_hot_water
+                data:
+                  temperature: 50
+              - action: number.set_value
+                target:
+                  entity_id: number.vitrocrossal_300_cu3a_dhw_temperature
+                data:
+                  value: 50
+              - action: notify.mobile_app_iphone_de_loic
+                data:
+                  title: "✅ Cycle Anti-Légionelle Terminé"
+                  message: "Désinfection thermique effectuée. Consigne ECS rétablie à 50°C."
+
   - alias: "Détection Aération Chambre"
     id: detection_aeration_chambre
     mode: single
@@ -391,6 +480,13 @@ automation:
       - platform: state
         entity_id: binary_sensor.chute_temperature_chambre
         to: "on"
+    condition:
+      - condition: time
+        after: "08:00:00"
+        before: "21:00:00"
+      - condition: state
+        entity_id: schedule.schedule_chauffage_chambre
+        state: "off"
     action:
       - action: timer.start
         target:
@@ -473,3 +569,36 @@ template:
           dernier_changement_mode: "{{ states('input_datetime.vicare_last_mode_change') }}"
           aeration_chambre: "{{ is_state('timer.aeration_chambre', 'active') }}"
           aeration_salon: "{{ is_state('timer.aeration_salon', 'active') }}"
+
+      - name: "Consigne Chauffage Salon"
+        unique_id: consigne_chauffage_salon
+        unit_of_measurement: "°C"
+        state: >-
+          {% set someone_home = states('zone.home') | int(0) > 0 %}
+          {% set salon_schedule_on = is_state('schedule.schedule_chauffage_salon', 'on') %}
+          {% set h = now().hour + (now().minute / 60) %}
+          {% if not someone_home %}
+            {{ states('input_number.heating_salon_away') | float(16) }}
+          {% elif salon_schedule_on %}
+            {% if h >= 22 or h < 7 %}
+              {{ states('input_number.heating_salon_night') | float(17) }}
+            {% elif h >= 18 %}
+              {{ states('input_number.heating_salon_evening') | float(19) }}
+            {% else %}
+              {{ states('input_number.heating_salon_day') | float(19) }}
+            {% endif %}
+          {% else %}
+            {{ states('input_number.heating_salon_night') | float(17) }}
+          {% endif %}
+
+      - name: "Consigne Chauffage Chambre"
+        unique_id: consigne_chauffage_chambre
+        unit_of_measurement: "°C"
+        state: >-
+          {% set someone_home = states('zone.home') | int(0) > 0 %}
+          {% set bedroom_schedule_on = is_state('schedule.schedule_chauffage_chambre', 'on') %}
+          {% if someone_home and bedroom_schedule_on %}
+            {{ states('input_number.heating_chambre_sleep') | float(17) }}
+          {% else %}
+            {{ states('input_number.heating_chambre_eco') | float(16) }}
+          {% endif %}
