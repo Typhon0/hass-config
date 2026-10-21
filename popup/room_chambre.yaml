@@ -10,7 +10,7 @@ browser_mod:
         - type: markdown
           content: |
             # Chambre
-            Éclairage, température, clim et purifier
+            Éclairage, température, chauffage et climatisation
           card_mod:
             style: |
               ha-card {
@@ -68,6 +68,26 @@ browser_mod:
                 - icon_climate
               tap_action:
                 action: more-info
+              variables:
+                circle_input: >
+                  [[[ return entity ? entity.state : ''; ]]]
+                circle_input_unit: "°C"
+            - type: custom:button-card
+              entity: climate.thermostat1
+              name: Radiateur
+              template:
+                - base
+                - circle
+                - icon_climate
+              tap_action:
+                action: more-info
+              variables:
+                circle_input: >
+                  [[[ 
+                    if (!entity || entity.state === 'unavailable') return '';
+                    return entity.attributes.temperature || '';
+                  ]]]
+                circle_input_unit: "°C"
             - type: custom:button-card
               entity: climate.forceclima
               name: Clim
@@ -80,28 +100,10 @@ browser_mod:
               variables:
                 circle_input: >
                   [[[ 
-                    if (entity) {
-                      return entity.state === 'cool' ? entity.attributes.temperature : entity.attributes.current_temperature;
-                    }
+                    if (!entity || entity.state === 'unavailable') return '';
+                    return entity.state === 'cool' ? entity.attributes.temperature : entity.attributes.current_temperature;
                   ]]]
                 circle_input_unit: "°C"
-            - type: custom:button-card
-              entity: fan.chambre
-              name: Dyson Purifier
-              template:
-                - base
-                - circle
-                - icon_fan2
-              tap_action:
-                action: more-info
-              variables:
-                circle_input: >
-                  [[[ 
-                    if (entity) {
-                      return entity.state === 'on' ? entity.attributes.percentage : '';
-                    }
-                  ]]]
-                circle_input_unit: "%"
         - type: entities
           title: Détails chambre
           show_header_toggle: false
@@ -109,11 +111,24 @@ browser_mod:
             - entity: light.mibedsidelamp2
               name: Lampe de chevet
             - entity: sensor.thermo_1_temperature
-              name: Température
+              name: Température ambiante
+            - entity: sensor.thermo_1_humidity
+              name: Humidité
+            - entity: climate.thermostat1
+              name: Vanne radiateur
             - entity: climate.forceclima
-              name: Clim
-            - entity: fan.chambre
-              name: Dyson Purifier
+              name: Climatiseur
+            - entity: timer.aeration_chambre
+              name: Pause Aération
+            - type: section
+              label: Chauffage & Planning
+            - entity: schedule.schedule_chauffage_chambre
+              name: Planning Chauffage Chambre
+              secondary_info: next-event
+            - entity: input_number.heating_chambre_sleep
+              name: Consigne Sommeil
+            - entity: input_number.heating_chambre_eco
+              name: Consigne Éco
           card_mod:
             style: |
               ha-card {

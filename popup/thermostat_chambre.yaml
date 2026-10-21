@@ -1,0 +1,80 @@
+action: fire-dom-event
+browser_mod:
+  service: browser_mod.popup
+  data:
+    title: Chauffage Chambre
+    content:
+      type: vertical-stack
+      cards:
+        - type: entities
+          card_mod:
+            style: |
+              #states { padding-top: 0.5em; padding-bottom: 0em; }
+          entities:
+            - entity: climate.thermostat1
+              name: Consigne radiateur
+            - entity: schedule.schedule_chauffage_chambre
+              name: Planning Chauffage Chambre
+              secondary_info: next-event
+            - entity: sensor.thermo_1_temperature
+              name: Température ambiante
+            - entity: sensor.thermo_1_humidity
+              name: Humidité ambiante
+            - entity: sensor.thermostat1_battery
+              name: Batterie de la vanne
+            - entity: switch.thermostat1_window_detection
+              name: Détection fenêtre ouverte
+            - type: section
+              label: Consignes Chauffage
+            - entity: input_number.heating_chambre_sleep
+              name: Consigne Sommeil
+            - entity: input_number.heating_chambre_eco
+              name: Consigne Éco
+
+        - type: custom:apexcharts-card
+          layout: minimal
+          locale: fr
+          graph_span: 24h
+          show:
+            loading: false
+          apex_config:
+            plotOptions:
+              area:
+                fillTo: end
+            grid:
+              padding:
+                top: -15
+            fill:
+              type: gradient
+              gradient:
+                type: vertical
+                opacityFrom: 0.8
+                opacityTo: 0
+                stops:
+                  - 0
+                  - 99
+                  - 100
+            stroke:
+              width: 3
+            tooltip:
+              style:
+                fontSize: 14px
+              x:
+                format: dddd HH:mm
+            chart:
+              height: 140px
+              offsetY: -10px
+            xaxis:
+              crosshairs:
+                show: false
+          series:
+            - entity: sensor.thermo_1_temperature
+              name: Température
+              color: "#ff9f0a"
+              type: area
+              stroke_width: 3
+            - entity: sensor.thermo_1_humidity
+              name: Humidité
+              color: "#30b0c7"
+              type: line
+              stroke_width: 2

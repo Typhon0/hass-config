@@ -1,69 +1,76 @@
 action: fire-dom-event
 browser_mod:
-  command: popup
-  title: Vardagsrum Tv
-  style:
-    hui-vertical-stack-card:
-      $: |
-        hui-horizontal-stack-card {
-          padding: 0em 2em 2.3em 2em;
-        }
-      $hui-horizontal-stack-card$: |
-        #root {
-          justify-content: space-evenly;
-        }
-  card:
-    type: vertical-stack
-    cards:
-      - type: entities
-        state_color: true
-        show_header_toggle: false
-        card_mod:
-          class: content
-        entities:
+  service: browser_mod.popup
+  data:
+    title: Télévision & Apple TV Séjour
+    content:
+      type: vertical-stack
+      cards:
+        - type: entities
+          card_mod:
+            style: |
+              #states { padding-top: 0.5em; padding-bottom: 0em; }
+          entities:
+            - entity: media_player.sejour
+              name: Apple TV Séjour
+              secondary_info: last-changed
+            - entity: media_player.samsung_qn90aa_75_tv
+              name: Samsung QN90A 75"
 
-          - entity: media_player.sony_bravia_tv
-            name: Sony Bravia
-            secondary_info: last-changed
+        - type: horizontal-stack
+          cards:
+            - type: custom:button-card
+              entity: media_player.sejour
+              icon: mdi:power
+              name: On/Off
+              tap_action:
+                action: call-service
+                service: media_player.toggle
+                service_data:
+                  entity_id: media_player.sejour
+              template: icon_name
 
-          - entity: automation.tv_on_lights
+            - type: custom:button-card
+              entity: media_player.sejour
+              icon: mdi:play-pause
+              name: Lecture
+              tap_action:
+                action: call-service
+                service: media_player.media_play_pause
+                service_data:
+                  entity_id: media_player.sejour
+              template: icon_name
 
-          - entity: select.hdmi_bravia
+            - type: custom:button-card
+              entity: media_player.samsung_qn90aa_75_tv
+              icon: mdi:volume-mute
+              name: Muet
+              tap_action:
+                action: call-service
+                service: media_player.volume_mute
+                service_data:
+                  entity_id: media_player.samsung_qn90aa_75_tv
+                  is_volume_muted: true
+              template: icon_name
 
-      - type: horizontal-stack
-        cards:
+            - type: custom:button-card
+              entity: media_player.samsung_qn90aa_75_tv
+              icon: mdi:volume-minus
+              name: Vol -
+              tap_action:
+                action: call-service
+                service: media_player.volume_down
+                service_data:
+                  entity_id: media_player.samsung_qn90aa_75_tv
+              template: icon_name
 
-          - type: custom:button-card
-            entity: media_player.sony_bravia_tv
-            icon: mdi:volume-mute
-            tap_action:
-              action: call-service
-              service: media_player.volume_mute
-              service_data:
-                entity_id: >
-                  [[[ return entity.entity_id; ]]]
-                is_volume_muted: >
-                  [[[ return entity.attributes.is_volume_muted === 'false' ? 'true' : 'false'; ]]]
-            template: icon_only
-
-          - type: custom:button-card
-            entity: media_player.sony_bravia_tv
-            icon: mdi:volume-minus
-            tap_action:
-              action: call-service
-              service: media_player.volume_down
-              service_data:
-                entity_id: >
-                  [[[ return entity.entity_id; ]]]
-            template: icon_only
-
-          - type: custom:button-card
-            entity: media_player.sony_bravia_tv
-            icon: mdi:volume-plus
-            tap_action:
-              action: call-service
-              service: media_player.volume_up
-              service_data:
-                entity_id: >
-                  [[[ return entity.entity_id; ]]]
-            template: icon_only
+            - type: custom:button-card
+              entity: media_player.samsung_qn90aa_75_tv
+              icon: mdi:volume-plus
+              name: Vol +
+              tap_action:
+                action: call-service
+                service: media_player.volume_up
+                service_data:
+                  entity_id: media_player.samsung_qn90aa_75_tv
+              template: icon_name

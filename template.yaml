@@ -43,12 +43,13 @@
         active: >
           <b>
           {% set lights = [
-            states.light.ampoule_cuisine,
-            states.light.ampoule_salon,
+            states.light.lampe_salon,
+            states.light.ampoule_lampadaire_salon,
             states.light.lampe_bureau,
-            states.light.netatmo_presence,
-            states.light.midbedsidelamp2
-          ] %}
+            states.light.led_strip_bureau,
+            states.light.spot_buanderie,
+            states.light.mibedsidelamp2
+          ] | select('defined') | reject('none') | list %}
 
           {% set devices = [
 
@@ -61,25 +62,25 @@
           {% set devices_name = devices_on | map(attribute='name') | join(', ') %}
 
           {% if (lights_on | length == 0) and (devices_on | length > 0) %}
-            {{ devices_name | regex_replace(',([^,]*)$',' et\\1') }} allumée
+            {{ devices_name | regex_replace(',([^,]*)$',' et\\1') }} actif
 
           {% elif (lights_on | length == 1) and (devices_on | length == 1) %}
-            {{ lights_name }} et {{devices_name }} allumée
+            {{ lights_name }} et {{ devices_name }} allumés
 
           {% elif (lights_on | length == 1) and (devices_on | length > 1) %}
-            {{ lights_name }}, {{ devices_name | regex_replace(',([^,]*)$',' et\\1') }} allumée
+            {{ lights_name }}, {{ devices_name | regex_replace(',([^,]*)$',' et\\1') }} allumés
 
           {% elif (lights_on | length > 1) and (devices_on | length == 1) %}
-            {{ lights_on | length }} lampes et {{ devices_name }} allumée
+            {{ lights_on | length }} lampes et {{ devices_name }} allumés
 
           {% elif (lights_on | length > 1) and (devices_on | length > 1) %}
-            {{ lights_on | length }} lampes, {{ devices_name | regex_replace(',([^,]*)$',' et\\1') }} allumée
+            {{ lights_on | length }} lampes, {{ devices_name | regex_replace(',([^,]*)$',' et\\1') }} allumés
 
           {% elif (lights_on | length == 1) and (devices_on | length == 0) %}
             {{ lights_name }} est allumée
 
           {% elif (lights_on | length > 1) and (devices_on | length == 0) %}
-            {{ lights_on | length }} les lumières sont allumées
+            {{ lights_on | length }} lumières sont allumées
 
           {% else %}
             <font color='#6a7377'>Tout est éteint</font>
@@ -92,7 +93,7 @@
             {% set temp = state_attr(entity, 'temperature') | round %}
             {% if not is_state(rain_chance_sensor, 'unknown') %}
               {% set rain_chance = states(rain_chance_sensor) | float | round %}
-              Ressenti {{ temp }}° </b></br> {{ 'sans de risques de pluie' if rain_chance == 0 else rain_chance | string + '% \u2614\uFE0F' }}
+              Ressenti {{ temp }}° </b></br> {{ 'aucun risque de pluie' if rain_chance == 0 else rain_chance | string + '% \u2614\uFE0F' }}
             {% else %}
               Ressenti {{ temp }}° (Information de précipitation non disponible)
             {% endif %}
@@ -120,4 +121,3 @@
           {% else %}
             <span class="tarif hp">Heure Pleine</span>
           {% endif %}
-

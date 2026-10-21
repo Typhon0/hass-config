@@ -1,0 +1,81 @@
+action: fire-dom-event
+browser_mod:
+  service: browser_mod.popup
+  data:
+    title: Ambiance Salon
+    content:
+      type: vertical-stack
+      cards:
+        - type: entities
+          card_mod:
+            style: |
+              #states { padding-top: 0.5em; padding-bottom: 0em; }
+          entities:
+            - entity: sensor.thermo_2_temperature
+              name: Température Salon
+              secondary_info: last-changed
+            - entity: sensor.thermo_2_humidity
+              name: Humidité Salon
+            - entity: sensor.thermo_2_battery
+              name: Batterie sonde
+            - type: section
+              label: Chauffage & Planning
+            - entity: schedule.schedule_chauffage_salon
+              name: Planning Chauffage Salon
+              secondary_info: next-event
+            - entity: input_number.heating_salon_day
+              name: Consigne Jour
+            - entity: input_number.heating_salon_evening
+              name: Consigne Soir
+            - entity: input_number.heating_salon_night
+              name: Consigne Nuit
+            - entity: input_number.heating_salon_away
+              name: Consigne Absence
+
+        - type: custom:apexcharts-card
+          layout: minimal
+          locale: fr
+          graph_span: 24h
+          show:
+            loading: false
+          apex_config:
+            plotOptions:
+              area:
+                fillTo: end
+            grid:
+              padding:
+                top: -15
+            fill:
+              type: gradient
+              gradient:
+                type: vertical
+                opacityFrom: 0.8
+                opacityTo: 0
+                stops:
+                  - 0
+                  - 99
+                  - 100
+            stroke:
+              width: 3
+            tooltip:
+              style:
+                fontSize: 14px
+              x:
+                format: dddd HH:mm
+            chart:
+              height: 140px
+              offsetY: -10px
+            xaxis:
+              crosshairs:
+                show: false
+          series:
+            - entity: sensor.thermo_2_temperature
+              name: Température
+              color: "#ff9f0a"
+              type: area
+              stroke_width: 3
+            - entity: sensor.thermo_2_humidity
+              name: Humidité
+              color: "#385581"
+              type: line
+              stroke_width: 2

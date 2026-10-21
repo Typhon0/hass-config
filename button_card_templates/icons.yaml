@@ -1050,4 +1050,39 @@ icon_wallbox:
         `;
       ]]]
 
+icon_tesla:
+  custom_fields:
+    icon: >
+      [[[
+        const chargingSensor = states['sensor.tesla_model_3_highland_charging'];
+        const isCharging = chargingSensor && (chargingSensor.state === 'Charging' || chargingSensor.state === 'charging');
+        const stateClass = isCharging ? 'charging' : 'idle';
+
+        return `
+          <svg viewBox="0 0 24 24">
+            <style>
+              .tesla-path {
+                transition: fill 0.3s ease-in-out;
+              }
+              .idle .tesla-path {
+                fill: #9da0a2;
+              }
+              .charging .tesla-path {
+                fill: #34c759;
+                animation: tesla-pulse 1.6s infinite ease-in-out;
+              }
+              @keyframes tesla-pulse {
+                0% { opacity: 1; }
+                50% { opacity: 0.55; }
+                100% { opacity: 1; }
+              }
+            </style>
+            <g class="${stateClass}">
+              <path class="tesla-path" d="M12 4.15c2.05 0 3.96.36 5.75 1.02.39.15.82-.06.97-.45l.74-2.02a.81.81 0 0 0-.46-1.03C16.63 1.05 14.4.82 12 .82s-4.63.23-7 .86a.81.81 0 0 0-.46 1.03l.74 2.02c.14.39.58.59.97.45 1.79-.66 3.7-1.03 5.75-1.03zm9.52 2.6a.81.81 0 0 0-.82.11C18.37 8.8 15.38 9.87 12 9.87s-6.36-1.07-8.7-3.01a.81.81 0 0 0-.82-.11L.58 7.8a.81.81 0 0 0-.36.96c2.47 6.79 7.23 11.23 11.77 13.91.31.19.7.19 1.01 0 4.54-2.68 9.3-7.12 11.77-13.91a.81.81 0 0 0-.36-.96l-1.9-1.05z"/>
+            </g>
+          </svg>
+        `;
+      ]]]
+
+
 

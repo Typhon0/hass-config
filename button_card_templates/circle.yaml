@@ -38,6 +38,10 @@ circle:
             * * * * * * * * * * * * * * * * * */
 
             let circle = (state, input, unit) => {
+                if (!entity || entity.state === 'unavailable' || entity.state === 'unknown') return '';
+                let val = (input !== undefined && input !== null) ? String(input).trim() : '';
+                if (val === '' || val === 'NaN') return '';
+
                 return `
                   <svg viewBox="0 0 50 50">
                     <style>
@@ -65,7 +69,7 @@ circle:
                       }
                     </style>
                     <circle id="circle_stroke" cx="25" cy="25" r="${r}"/>
-                    <text id="circle_value" x="50%" y="52%">${input}${tspan}${unit}</tspan></text>
+                    <text id="circle_value" x="50%" y="52%">${val}${tspan}${unit || ''}</tspan></text>
                   </svg>
 
                   ${domain === 'light' && `
@@ -192,8 +196,9 @@ circle:
             *                                 *
             * * * * * * * * * * * * * * * * * */
 
-            else if (variables.state_on) {
+            else if (variables.state_on || (variables.circle_input !== undefined && variables.circle_input !== '')) {
                 return circle(state, input, unit);
             }
         }
       ]]]
+

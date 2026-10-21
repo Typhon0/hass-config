@@ -10,7 +10,7 @@ browser_mod:
         - type: markdown
           content: |
             # Cuisine
-            Éclairage et température
+            Gestion de l'éclairage et du confort thermique (en attente d'équipement)
           card_mod:
             style: |
               ha-card {
@@ -35,7 +35,7 @@ browser_mod:
                 font-size: 0.98rem;
               }
         - type: grid
-          columns: 4
+          columns: 2
           square: false
           card_mod:
             style: |
@@ -50,44 +50,14 @@ browser_mod:
               }
           cards:
             - type: custom:button-card
-              entity: light.ampoule_lampadaire_salon
-              name: Lumière
-              template:
-                - light
-                - icon_hue
-              tap_action:
-                action: toggle
-              double_tap_action:
-                action: more-info
-            - type: custom:button-card
-              entity: sensor.thermo_cuisine_temperature
-              name: Température
+              name: Éclairage
+              state_display: En attente
               template:
                 - base
-                - circle
+                - icon_lamp
+            - type: custom:button-card
+              name: Chauffage
+              state_display: En attente
+              template:
+                - base
                 - icon_climate
-              tap_action:
-                action: more-info
-        - type: entities
-          title: Détails cuisine
-          show_header_toggle: false
-          entities:
-            - entity: light.ampoule_lampadaire_salon
-              name: Lumière
-            - entity: sensor.thermo_cuisine_temperature
-              name: Température
-          card_mod:
-            style: |
-              ha-card {
-                margin-top: 22px;
-                border-radius: 26px;
-                background: rgba(255,255,255,0.04);
-                border: 1px solid rgba(255,255,255,0.06);
-                box-shadow: none;
-                overflow: hidden;
-              }
-              .card-header {
-                font-size: 1rem;
-                font-weight: 600;
-                color: rgba(255,255,255,0.9);
-              }

@@ -136,6 +136,19 @@ browser_mod:
               name: Température
             - entity: media_player.sejour
               name: TV
+            - type: section
+              label: Chauffage & Planning
+            - entity: schedule.schedule_chauffage_salon
+              name: Planning Chauffage Salon
+              secondary_info: next-event
+            - entity: input_number.heating_salon_day
+              name: Consigne Jour
+            - entity: input_number.heating_salon_evening
+              name: Consigne Soir
+            - entity: input_number.heating_salon_night
+              name: Consigne Nuit
+            - entity: input_number.heating_salon_away
+              name: Consigne Absence
           card_mod:
             style: |
               ha-card {

@@ -1,0 +1,57 @@
+action: fire-dom-event
+browser_mod:
+  service: browser_mod.popup
+  data:
+    title: Tesla Model 3 Highland
+    content:
+      type: vertical-stack
+      cards:
+        # --- État Principal ---
+        - type: entities
+          card_mod:
+            style: |
+              #states { padding-top: 0.5em; padding-bottom: 0em; }
+          entities:
+            - entity: sensor.tesla_model_3_highland_battery_level
+              name: Batterie
+              secondary_info: last-changed
+            - entity: sensor.tesla_model_3_highland_battery_range
+              name: Autonomie estimée
+            - entity: sensor.tesla_model_3_highland_charging
+              name: Statut de charge
+            - entity: sensor.tesla_model_3_highland_charger_power
+              name: Puissance de charge
+            - entity: sensor.tesla_model_3_highland_inside_temperature
+              name: Température intérieure
+
+        # --- Commandes Véhicule ---
+        - type: entities
+          title: Commandes
+          show_header_toggle: false
+          card_mod:
+            style: |
+              #states { padding-top: 0.5em; padding-bottom: 0em; }
+          entities:
+            - entity: lock.tesla_model_3_highland_lock
+              name: Verrouillage portes
+            - entity: climate.tesla_model_3_highland_climate
+              name: Climatisation habitacle
+            - entity: cover.tesla_model_3_highland_charge_port_door
+              name: Trappe de recharge
+            - entity: cover.tesla_model_3_highland_frunk
+              name: Coffre avant (Frunk)
+            - entity: cover.tesla_model_3_highland_trunk
+              name: Coffre arrière (Trunk)
+
+        # --- Paramètres de Recharge ---
+        - type: entities
+          title: Recharge
+          show_header_toggle: false
+          card_mod:
+            style: |
+              #states { padding-top: 0.5em; padding-bottom: 0.5em; }
+          entities:
+            - entity: number.tesla_model_3_highland_charge_limit
+              name: Limite de charge
+            - entity: binary_sensor.tesla_model_3_highland_charge_cable
+              name: Câble branché

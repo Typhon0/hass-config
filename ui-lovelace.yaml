@@ -74,12 +74,9 @@ views:
           - type: custom:button-card
             entity: sensor.template_sidebar
             template: sidebar
-          - type: weather-forecast
+          - type: custom:button-card
             entity: weather.maison
-            theme: tablet
-            secondary_info_attribute: humidity
-            show_current: true
-            show_forecast: false
+            template: sidebar_weather
           - type: conditional
             conditions:
               - entity: input_boolean.laundry_display
@@ -113,7 +110,15 @@ views:
           - type: custom:button-card
             name: Salon
             template: room_section_header
+            variables:
+              schedule_entity: schedule.schedule_chauffage_salon
             tap_action: !include popup/room_salon.yaml
+            double_tap_action:
+              action: more-info
+              entity: schedule.schedule_chauffage_salon
+            hold_action:
+              action: more-info
+              entity: schedule.schedule_chauffage_salon
           - type: grid
             columns: 2
             square: false
@@ -149,12 +154,26 @@ views:
               - type: custom:button-card
                 entity: sensor.thermo_2_temperature
                 name: Température
-                tap_action:
+                tap_action: !include popup/ambiance_salon.yaml
+                double_tap_action:
                   action: more-info
+                  entity: schedule.schedule_chauffage_salon
+                hold_action:
+                  action: more-info
+                  entity: schedule.schedule_chauffage_salon
                 template:
                   - base
                   - circle
                   - icon_climate
+                variables:
+                  circle_input: >
+                    [[[ return entity ? entity.state : ''; ]]]
+                  circle_input_unit: "°C"
+                state_display: >
+                  [[[
+                    const sched = states['schedule.schedule_chauffage_salon'];
+                    return (sched && sched.state === 'on') ? 'Planning actif' : 'Planning éco';
+                  ]]]
               - type: custom:button-card
                 entity: media_player.sejour
                 name: TV
@@ -239,22 +258,27 @@ views:
                       return trigger === undefined || trigger;
                     ]]]
               - type: custom:button-card
-                entity: climate.thermostat1
-                name: Tado
-                tap_action:
-                  action: more-info
+                entity: light.lumiere_bureau
+                name: Bureau
                 template:
-                  - base
-                  - icon_climate
-                  - circle
-                variables:
-                  circle_input: >
-                    [[[
-                      if (entity) {
-                        return entity.state === 'cool' ? entity.attributes.temperature : entity.attributes.current_temperature;
-                      }
-                    ]]]
-                  circle_input_unit: "°C"
+                  - light
+                  - icon_hue
+                tap_action:
+                  action: call-service
+                  service: light.toggle
+                  service_data:
+                    entity_id:
+                      - light.led_strip_bureau
+                      - light.lampe_bureau
+                double_tap_action:
+                  action: more-info
+                state_display: >
+                  [[[
+                    const strip = states['light.led_strip_bureau'];
+                    const lamp = states['light.lampe_bureau'];
+                    const on = (strip && strip.state === 'on') || (lamp && lamp.state === 'on');
+                    return on ? 'On' : 'Off';
+                  ]]]
 
       - type: vertical-stack
         card_mod:
@@ -292,21 +316,18 @@ views:
                 }
             cards:
               - type: custom:button-card
-                entity: light.ampoule_lampadaire_salon
-                name: Lumière
-                template:
-                  - light
-                  - icon_hue
-                double_tap_action:
-                  action: more-info
-              - type: custom:button-card
-                entity: sensor.thermo_cuisine_temperature
-                name: Température
-                tap_action:
-                  action: more-info
+                name: Éclairage
+                state_display: En attente
+                tap_action: !include popup/room_cuisine.yaml
                 template:
                   - base
-                  - circle
+                  - icon_lamp
+              - type: custom:button-card
+                name: Chauffage
+                state_display: En attente
+                tap_action: !include popup/room_cuisine.yaml
+                template:
+                  - base
                   - icon_climate
 
       - type: vertical-stack
@@ -328,7 +349,15 @@ views:
           - type: custom:button-card
             name: Chambre
             template: room_section_header
+            variables:
+              schedule_entity: schedule.schedule_chauffage_chambre
             tap_action: !include popup/room_chambre.yaml
+            double_tap_action:
+              action: more-info
+              entity: schedule.schedule_chauffage_chambre
+            hold_action:
+              action: more-info
+              entity: schedule.schedule_chauffage_chambre
           - type: grid
             columns: 2
             square: false
@@ -363,12 +392,34 @@ views:
                   - icon_climate
                 variables:
                   circle_input: >
+                    [[[ return entity ? entity.state : ''; ]]]
+                  circle_input_unit: "°C"
+              - type: custom:button-card
+                entity: climate.thermostat1
+                name: Radiateur
+                tap_action: !include popup/thermostat_chambre.yaml
+                double_tap_action:
+                  action: more-info
+                  entity: schedule.schedule_chauffage_chambre
+                hold_action:
+                  action: more-info
+                  entity: schedule.schedule_chauffage_chambre
+                template:
+                  - base
+                  - circle
+                  - icon_climate
+                variables:
+                  circle_input: >
                     [[[
-                      if (entity) {
-                        return entity.state === 'cool' ? entity.attributes.temperature : entity.attributes.current_temperature;
-                      }
+                      if (!entity || entity.state === 'unavailable') return '';
+                      return entity.attributes.temperature || '';
                     ]]]
                   circle_input_unit: "°C"
+                state_display: >
+                  [[[
+                    const sched = states['schedule.schedule_chauffage_chambre'];
+                    return (sched && sched.state === 'on') ? 'Planning actif' : 'Planning éco';
+                  ]]]
               - type: custom:button-card
                 entity: climate.forceclima
                 name: Clim
@@ -381,28 +432,17 @@ views:
                 variables:
                   circle_input: >
                     [[[
-                      if (entity) {
-                        return entity.state === 'cool' ? entity.attributes.temperature : entity.attributes.current_temperature;
-                      }
+                      if (!entity || entity.state === 'unavailable' || entity.state === 'unknown') return '';
+                      return entity.state === 'cool' ? entity.attributes.temperature : entity.attributes.current_temperature;
                     ]]]
                   circle_input_unit: "°C"
-              - type: custom:button-card
-                entity: fan.chambre
-                name: Dyson Purifier
-                double_tap_action:
-                  action: more-info
-                template:
-                  - base
-                  - circle
-                  - icon_fan2
-                variables:
-                  circle_input: >
-                    [[[
-                      if (entity) {
-                        return entity.state === 'on' ? entity.attributes.percentage : '';
-                      }
-                    ]]]
-                  circle_input_unit: "%"
+                state_display: >
+                  [[[
+                    if (!entity || entity.state === 'unavailable' || entity.state === 'unknown') return 'Arrêt';
+                    if (entity.state === 'off') return 'Off';
+                    if (entity.state === 'cool') return 'Clim';
+                    return entity.state;
+                  ]]]
 
       - type: vertical-stack
         card_mod:
@@ -580,6 +620,7 @@ views:
                 name: Chauffage
                 template:
                   - base
+                  - icon_climate
                 show_state: true
                 tap_action:
                   action: more-info
@@ -654,6 +695,11 @@ views:
                 variables:
                   retain: sensor.emma_last_changed
                 template: person
+                state_display: >
+                  [[[
+                    if (!entity) return variables.translate_unknown;
+                    return entity.state === 'home' ? 'Présente' : 'Absente';
+                  ]]]
               - type: custom:button-card
                 entity: sensor.wallbox_pulsar_max_sn_1331158_status_description
                 name: Chargeur
@@ -714,6 +760,34 @@ views:
                 template:
                   - base
                   - icon_home
+              - type: custom:button-card
+                entity: sensor.tesla_model_3_highland_battery_level
+                name: Tesla
+                tap_action: !include popup/tesla.yaml
+                template:
+                  - base
+                  - circle
+                  - icon_tesla
+                  - loader
+                variables:
+                  circle_input: >
+                    [[[
+                      if (!entity || entity.state === 'unavailable') return '';
+                      return parseInt(entity.state);
+                    ]]]
+                  circle_input_unit: "%"
+                state_display: >
+                  [[[
+                    const charging = states['sensor.tesla_model_3_highland_charging'];
+                    if (charging && (charging.state === 'Charging' || charging.state === 'charging')) {
+                      return 'En charge';
+                    }
+                    const range = states['sensor.tesla_model_3_highland_battery_range'];
+                    if (range && range.state) {
+                      return `${Math.round(parseFloat(range.state))} km`;
+                    }
+                    return variables.translate_unknown;
+                  ]]]
 
       - type: grid
         view_layout:

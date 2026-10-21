@@ -6,13 +6,16 @@ room_section_header:
     action: none
   hold_action:
     action: none
+  variables:
+    subtitle: ""
+    schedule_entity: ""
   styles:
     grid:
       - grid-template-areas: '"n chev" "meta chev"'
       - grid-template-columns: 1fr min-content
       - grid-template-rows: min-content min-content
       - column-gap: 0.8vw
-      - row-gap: 0.15vw
+      - row-gap: 0.2vw
     card:
       - background: transparent
       - box-shadow: none
@@ -34,10 +37,7 @@ room_section_header:
       meta:
         - justify-self: start
         - align-self: start
-        - font-size: 0.9vw
-        - font-weight: 520
-        - letter-spacing: -0.02em
-        - color: rgba(186,191,198,0.58)
+        - margin-top: 4px
       chev:
         - justify-self: end
         - align-self: center
@@ -47,6 +47,64 @@ room_section_header:
         - padding-top: 0.35vw
   custom_fields:
     meta: >
-      [[[ return variables.subtitle || ''; ]]]
+      [[[
+        if (typeof variables !== 'undefined' && variables && variables.subtitle) {
+          return `<span style="font-size: 0.9vw; font-weight: 520; letter-spacing: -0.02em; color: rgba(186,191,198,0.58);">${variables.subtitle}</span>`;
+        }
+        if (typeof variables === 'undefined' || !variables || !variables.schedule_entity) return '';
+        const schedObj = states[variables.schedule_entity];
+        if (!schedObj) return '';
+        const isOn = schedObj.state === 'on';
+        const next = schedObj.attributes.next_event;
+        let timeStr = '';
+        if (next) {
+          const d = new Date(next);
+          const h = String(d.getHours()).padStart(2, '0');
+          const m = String(d.getMinutes()).padStart(2, '0');
+          timeStr = ` • ${isOn ? "jusqu'à" : 'dès'} ${h}:${m}`;
+        }
+        const color = isOn ? '#ff9f0a' : 'rgba(255, 255, 255, 0.55)';
+        const bg = isOn ? 'rgba(255, 159, 10, 0.12)' : 'rgba(255, 255, 255, 0.05)';
+        const border = isOn ? 'rgba(255, 159, 10, 0.25)' : 'rgba(255, 255, 255, 0.08)';
+        const dot = isOn ? '#ff9f0a' : 'rgba(255, 255, 255, 0.3)';
+        const label = isOn ? 'Planning actif' : 'Planning éco';
+        return `
+          <div class="sched-pill"
+               title="Planning chauffage - Cliquer pour ouvrir et modifier"
+               onclick="event.stopPropagation(); this.dispatchEvent(new CustomEvent('hass-more-info', { bubbles: true, composed: true, detail: { entityId: '${variables.schedule_entity}' }}));"
+               style="
+                 display: inline-flex;
+                 align-items: center;
+                 gap: 6px;
+                 padding: 3px 9px 3px 7px;
+                 border-radius: 999px;
+                 background: ${bg};
+                 border: 1px solid ${border};
+                 cursor: pointer;
+                 user-select: none;
+                 -webkit-tap-highlight-color: transparent;
+                 transition: all 0.2s ease;
+               ">
+            <span style="
+              width: 5px;
+              height: 5px;
+              border-radius: 50%;
+              background: ${dot};
+              box-shadow: ${isOn ? '0 0 5px rgba(255, 159, 10, 0.6)' : 'none'};
+            "></span>
+            <ha-icon icon="${isOn ? 'mdi:calendar-clock' : 'mdi:calendar-clock-outline'}"
+                     style="width: 13px; height: 13px; color: ${color}; --mdc-icon-size: 13px;"></ha-icon>
+            <span style="
+              font-size: 0.78rem;
+              font-weight: 550;
+              letter-spacing: -0.01em;
+              color: ${color};
+              line-height: 1;
+            ">${label}${timeStr}</span>
+            <ha-icon icon="mdi:chevron-right"
+                     style="width: 12px; height: 12px; color: ${color}; opacity: 0.5; --mdc-icon-size: 12px; margin-left: -2px;"></ha-icon>
+          </div>
+        `;
+      ]]]
     chev: >
       [[[ return '<ha-icon icon="mdi:chevron-right"></ha-icon>'; ]]]

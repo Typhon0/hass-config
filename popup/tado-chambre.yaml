@@ -2,26 +2,30 @@ action: fire-dom-event
 browser_mod:
   service: browser_mod.popup
   data:
+    title: Chauffage Chambre
     content:
       type: vertical-stack
       cards:
-        - type: custom:thermostat-card
-          entity: climate.smart_radiator_thermostat_chambre
-          no_card: true
-
         - type: entities
           card_mod:
-            class: content
+            style: |
+              #states { padding-top: 0.5em; padding-bottom: 0em; }
           entities:
-            - entity: sensor.chambre_temperature
-              name: Température
-            - entity: sensor.chambre_humidity
-              name: Humidité
+            - entity: climate.thermostat1
+              name: Consigne radiateur
+            - entity: sensor.thermo_1_temperature
+              name: Température ambiante
+            - entity: sensor.thermo_1_humidity
+              name: Humidité ambiante
+            - entity: sensor.thermostat1_battery
+              name: Batterie de la vanne
+            - entity: switch.thermostat1_window_detection
+              name: Détection fenêtre ouverte
 
         - type: custom:apexcharts-card
           layout: minimal
           locale: fr
-          graph_span: 8h
+          graph_span: 24h
           show:
             loading: false
           apex_config:
@@ -42,7 +46,7 @@ browser_mod:
                   - 99
                   - 100
             stroke:
-              width: 4
+              width: 3
             tooltip:
               style:
                 fontSize: 14px
@@ -50,33 +54,18 @@ browser_mod:
                 format: dddd HH:mm
             chart:
               height: 140px
-              offsetY: -20px
+              offsetY: -10px
             xaxis:
               crosshairs:
                 show: false
           series:
-            - entity: sensor.chambre_temperature
+            - entity: sensor.thermo_1_temperature
               name: Température
-              color: "#385581"
-              curve: smooth
+              color: "#ff9f0a"
               type: area
-              fill_raw: last
-              group_by:
-                func: avg
-                duration: 24h
-            - entity: sensor.chambre_humidity
+              stroke_width: 3
+            - entity: sensor.thermo_1_humidity
               name: Humidité
-              curve: smooth
-              color: "#385581"
-              type: area
-              fill_raw: last
-              group_by:
-                func: avg
-                duration: 24h
-  style:
-    hui-vertical-stack-card:
-      $hui-entities-card$: |
-        #states {
-          padding-top: 0.5em;
-          padding-bottom: 0em;
-        }
+              color: "#30b0c7"
+              type: line
+              stroke_width: 2

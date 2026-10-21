@@ -10,7 +10,7 @@ browser_mod:
         - type: markdown
           content: |
             # Bureau
-            Éclairage, poste de travail et chauffage
+            Éclairage, poste de travail et équipements
           card_mod:
             style: |
               ha-card {
@@ -71,29 +71,22 @@ browser_mod:
                 action: more-info
             - type: custom:button-card
               entity: sensor.pc_loic_sessionstate
-              name: PC
+              name: PC Loïc
               template:
                 - base
                 - icon_imac
               tap_action:
                 action: more-info
             - type: custom:button-card
-              entity: climate.smart_radiator_thermostat_bureau
-              name: Tado
+              entity: light.lumiere_bureau
+              name: Tout le bureau
               template:
-                - base
-                - icon_climate
-                - circle
+                - light
+                - icon_hue
               tap_action:
+                action: toggle
+              double_tap_action:
                 action: more-info
-              variables:
-                circle_input: >
-                  [[[ 
-                    if (entity) {
-                      return entity.state === 'cool' ? entity.attributes.temperature : entity.attributes.current_temperature;
-                    }
-                  ]]]
-                circle_input_unit: "°C"
         - type: entities
           title: Détails bureau
           show_header_toggle: false
@@ -102,10 +95,12 @@ browser_mod:
               name: Led Bureau
             - entity: light.lampe_bureau
               name: Lampe Bureau
+            - entity: light.lumiere_bureau
+              name: Éclairage groupé
             - entity: sensor.pc_loic_sessionstate
-              name: État PC
-            - entity: climate.smart_radiator_thermostat_bureau
-              name: Tado
+              name: État session PC
+            - entity: media_player.pc_loic
+              name: Lecteur Audio PC
           card_mod:
             style: |
               ha-card {

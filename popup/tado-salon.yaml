@@ -2,26 +2,27 @@ action: fire-dom-event
 browser_mod:
   service: browser_mod.popup
   data:
+    title: Ambiance Salon
     content:
       type: vertical-stack
       cards:
-        - type: custom:thermostat-card
-          entity: climate.smart_thermostat_salon
-          no_card: true
-
         - type: entities
           card_mod:
-            class: content
+            style: |
+              #states { padding-top: 0.5em; padding-bottom: 0em; }
           entities:
-            - entity: sensor.salon_temperature
-              name: Température
-            - entity: sensor.salon_humidity
-              name: Humidité
+            - entity: sensor.thermo_2_temperature
+              name: Température Salon
+              secondary_info: last-changed
+            - entity: sensor.thermo_2_humidity
+              name: Humidité Salon
+            - entity: sensor.thermo_2_battery
+              name: Batterie sonde
 
         - type: custom:apexcharts-card
           layout: minimal
           locale: fr
-          graph_span: 8h
+          graph_span: 24h
           show:
             loading: false
           apex_config:
@@ -42,7 +43,7 @@ browser_mod:
                   - 99
                   - 100
             stroke:
-              width: 4
+              width: 3
             tooltip:
               style:
                 fontSize: 14px
@@ -50,34 +51,18 @@ browser_mod:
                 format: dddd HH:mm
             chart:
               height: 140px
-              offsetY: -20px
+              offsetY: -10px
             xaxis:
               crosshairs:
                 show: false
           series:
-            - entity: sensor.salon_temperature
+            - entity: sensor.thermo_2_temperature
               name: Température
-              color: "#385581"
-              curve: smooth
+              color: "#ff9f0a"
               type: area
-              fill_raw: last
-              group_by:
-                func: avg
-                duration: 24h
-            - entity: sensor.salon_humidity
+              stroke_width: 3
+            - entity: sensor.thermo_2_humidity
               name: Humidité
-              curve: smooth
               color: "#385581"
-              type: area
-              fill_raw: last
-              group_by:
-                func: avg
-                duration: 24h
-  style:
-    hui-vertical-stack-card:
-      $hui-entities-card$: |
-        #states {
-          border-style:none;
-          padding-top: 0.5em;
-          padding-bottom: 0em;
-        }
+              type: line
+              stroke_width: 2
