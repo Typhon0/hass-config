@@ -136,3 +136,17 @@ logger:
   default: info
   logs:
     custom_components.auth_header: debug
+# InfluxDB integration for heating analytics
+influxdb:
+  api_version: 2
+  host: 192.168.1.171
+  port: 8086
+  token: heating-super-token-2026
+  organization: homeassistant
+  bucket: heating
+  ssl: false
+  verify_ssl: false
+  max_retries: 3
+  tags:
+    source: homeassistant
+    system: heating

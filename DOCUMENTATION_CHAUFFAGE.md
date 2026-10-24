@@ -196,7 +196,7 @@ Sans débit d'eau, l'échangeur de la chaudière surchauffait en 90 secondes et 
 - **Consigne permanente de base :** **50°C** (`number.vitrocrossal_300_cu3a_dhw_temperature` et `water_heater.vitrocrossal_300_cu3a_domestic_hot_water`).
   - *Avantage :* Réduit les déperditions statiques du ballon de 15% à 20% par rapport à une ancienne consigne à 55°C, tout en délivrant une eau très confortable pour les usages quotidiens (eau mitoyenne à 38-40°C).
 - **Boost manuel 1 heure :**  
-  Les scripts `hot_water_boost_1h` et `boost_eau_chaude_2_douches` permettent de forcer ponctuellement le ballon à **55°C** pendant 1 heure (en cas de forte consommation exceptionnelle ou d'invités). À la fin de la minuterie, la consigne est automatiquement rétablie à **50°C**.
+  Les scripts `hot_water_boost_1h` et `boost_eau_chaude_2_douches` permettent de forcer ponctuellement le ballon à **50°C** pendant 1 heure (en cas de forte consommation exceptionnelle en journée hors de la plage 19h-23h). À la fin de la minuterie, la consigne est automatiquement rétablie à sa valeur nominale (**50°C**).
 
 ### D. Cycle Anti-Légionelle Hebdomadaire Automatisé
 - **Automatisation :** [`automation.cycle_anti_legionelle_hebdomadaire_ecs`](file:///root/config/packages/heating_manager_bedroom.yaml#L418-L450).

@@ -804,7 +804,7 @@ views:
                 state_display: >
                   [[[
                     if (!entity || entity.state === 'unavailable') return 'En attente';
-                    return entity.state === 'on' ? 'Prêt • 55°C' : 'Standby';
+                    return entity.state === 'on' ? 'Prêt • 50°C' : 'Standby';
                   ]]]
 
       - type: vertical-stack
@@ -943,7 +943,7 @@ views:
                 state_display: >
                   [[[
                     if (!entity || entity.state === 'unavailable') return 'En attente';
-                    return `${entity.attributes.current_temperature || 55}°C • ${entity.state === 'on' ? 'Prêt' : 'Éco'}`;
+                    return `${entity.attributes.current_temperature || 50}°C • ${entity.state === 'on' ? 'Prêt' : 'Éco'}`;
                   ]]]
 
       - type: vertical-stack

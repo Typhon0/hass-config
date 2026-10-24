@@ -127,7 +127,13 @@ script:
         target:
           entity_id: water_heater.vitrocrossal_300_cu3a_domestic_hot_water
         data:
-          temperature: 55
+          temperature: 50
+
+      - action: number.set_value
+        target:
+          entity_id: number.vitrocrossal_300_cu3a_dhw_temperature
+        data:
+          value: 50
 
       - action: timer.start
         target:
@@ -140,7 +146,7 @@ script:
           title: "Boost ECS"
           message: >-
             Boost eau chaude lance pour 1h.
-            Temperature forcee a 55°C.
+            Temperature forcee a 50°C.
             Retour prevu a
             {{ states('input_number.hot_water_boost_restore_temp') | int }}°C.
 

@@ -46,7 +46,7 @@ lancer_le_mode_console:
       entity_id: button.pc_loic_pc_switch_to_tv
 boost_eau_chaude_2_douches:
   alias: Boost eau chaude (2 douches)
-  description: Relaye vers le gestionnaire officiel de boost ECS (chauffage forcé 55°C avec minuterie résiliente).
+  description: Relaye vers le gestionnaire officiel de boost ECS (chauffage forcé 50°C avec minuterie résiliente).
   sequence:
   - action: script.hot_water_boost_1h
     data: {}
