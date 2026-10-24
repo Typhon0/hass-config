@@ -150,3 +150,22 @@ influxdb:
   tags:
     source: homeassistant
     system: heating
+  include:
+    domains:
+      - climate
+      - water_heater
+    entity_globs:
+      - sensor.gaz_*
+      - sensor.vitrocrossal_*
+      - binary_sensor.vitrocrossal_*
+      - sensor.ve_*
+      - sensor.wallbox_*
+      - sensor.tesla_*
+      - sensor.heating_*
+      - sensor.thermo_*
+      - sensor.*_power
+      - sensor.*_energy
+      - sensor.consommation_*
+    entities:
+      - sensor.gazpar_energy
+      - sensor.chauffage_statut

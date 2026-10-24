@@ -1,0 +1,107 @@
+###############################################################################
+# HEATING ANALYTICS - INFLUXDB & LLM HYBRID MONITORING
+###############################################################################
+
+template:
+  - sensor:
+      - name: "Heating kWh per DJ"
+        unique_id: heating_kwh_per_dj
+        unit_of_measurement: "kWh/DJU"
+        state_class: measurement
+        icon: mdi:fire-circle
+        state: >-
+          {% set dju = states('sensor.gaz_dju_jour') | float(0) %}
+          {% set kwh_heat = states('sensor.gaz_kwh_chauffage_jour') | float(0) %}
+          {% if dju > 0 %}
+            {{ (kwh_heat / dju) | round(2) }}
+          {% else %}
+            0.0
+          {% endif %}
+        attributes:
+          dju_jour: "{{ states('sensor.gaz_dju_jour') }}"
+          kwh_chauffage_jour: "{{ states('sensor.gaz_kwh_chauffage_jour') }}"
+          description: "Intensité énergétique du chauffage pur rapportée au froid extérieur"
+
+      - name: "Gaz Total kWh per DJ"
+        unique_id: gaz_total_kwh_per_dj
+        unit_of_measurement: "kWh/DJU"
+        state_class: measurement
+        icon: mdi:gas-burner
+        state: >-
+          {% set dju = states('sensor.gaz_dju_jour') | float(0) %}
+          {% set kwh_total = states('sensor.gaz_kwh_jour_effectif') | float(0) %}
+          {% if dju > 0 %}
+            {{ (kwh_total / dju) | round(2) }}
+          {% else %}
+            0.0
+          {% endif %}
+        attributes:
+          dju_jour: "{{ states('sensor.gaz_dju_jour') }}"
+          kwh_total_jour: "{{ states('sensor.gaz_kwh_jour_effectif') }}"
+          description: "Intensité énergétique globale du gaz (chauffage + ECS) rapportée aux DJU"
+
+      - name: "Heating Condensing Ratio"
+        unique_id: heating_condensing_ratio
+        unit_of_measurement: "%"
+        state_class: measurement
+        icon: mdi:water-percent
+        state: >-
+          {% set supply = states('sensor.vitrocrossal_300_cu3a_supply_temperature') | float(0) %}
+          {% set burner = is_state('binary_sensor.vitrocrossal_300_cu3a_burner', 'on') %}
+          {% set is_dhw = is_state('binary_sensor.vitrocrossal_300_cu3a_dhw_charging', 'on') %}
+          {% if not burner %}
+            100.0
+          {% elif is_dhw %}
+            85.0
+          {% elif supply <= 45 %}
+            98.0
+          {% elif supply <= 50 %}
+            94.0
+          {% elif supply <= 55 %}
+            90.0
+          {% else %}
+            80.0
+          {% endif %}
+        attributes:
+          temperature_depart: "{{ states('sensor.vitrocrossal_300_cu3a_supply_temperature') }}"
+          bruleur_actif: "{{ is_state('binary_sensor.vitrocrossal_300_cu3a_burner', 'on') }}"
+          ecs_active: "{{ is_state('binary_sensor.vitrocrossal_300_cu3a_dhw_charging', 'on') }}"
+          description: "Estimation du rendement de condensation selon la loi d'eau et la température de départ"
+
+      - name: "Heating Short Cycles"
+        unique_id: heating_short_cycles
+        unit_of_measurement: "cycles/h"
+        state_class: measurement
+        icon: mdi:chart-timeline-variant
+        state: >-
+          {{ states('sensor.vitrocrossal_allumages_derniere_heure') | float(0) }}
+        attributes:
+          seuil_alerte: 3
+          description: "Nombre d'allumages brûleur sur la dernière heure (alerte si > 3 cycles/h)"
+
+      - name: "Heating Setpoint Gap"
+        unique_id: heating_setpoint_gap
+        unit_of_measurement: "°C"
+        state_class: measurement
+        icon: mdi:thermometer-chevron-up
+        state: >-
+          {% set t1 = states('sensor.thermo_1_temperature') | float(none) %}
+          {% set c1 = states('sensor.consigne_chauffage_chambre') | float(none) %}
+          {% set t2 = states('sensor.thermo_2_temperature') | float(none) %}
+          {% set c2 = states('sensor.consigne_chauffage_salon') | float(none) %}
+          {% if t1 is not none and c1 is not none and t2 is not none and c2 is not none %}
+            {{ (((t1 - c1)|abs + (t2 - c2)|abs) / 2.0) | round(2) }}
+          {% else %}
+            0.0
+          {% endif %}
+        attributes:
+          ecart_chambre: >-
+            {% set t1 = states('sensor.thermo_1_temperature') | float(none) %}
+            {% set c1 = states('sensor.consigne_chauffage_chambre') | float(none) %}
+            {{ ((t1 - c1)|abs)|round(2) if t1 is not none and c1 is not none else 0.0 }}
+          ecart_salon: >-
+            {% set t2 = states('sensor.thermo_2_temperature') | float(none) %}
+            {% set c2 = states('sensor.consigne_chauffage_salon') | float(none) %}
+            {{ ((t2 - c2)|abs)|round(2) if t2 is not none and c2 is not none else 0.0 }}
+          description: "Écart moyen absolu entre température ambiante et consigne sur la chambre et le salon"
+
