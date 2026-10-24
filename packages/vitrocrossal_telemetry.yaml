@@ -54,10 +54,13 @@ template:
         icon: mdi:timer-outline
         state: >
           {% set s1 = states('sensor.vitrocrossal_allumages_jour') %}
-          {% set starts = (s1 | float(0)) if s1 not in ['unknown', 'unavailable'] else (states('sensor.vitrocrossal_allumages_jour_2') | float(0)) %}
-          {% set hours = states('sensor.vitrocrossal_bruleur_temps_total_jour') | float(0) %}
-          {% if starts > 0 and hours > 0 %}
-            {{ ((hours / starts) * 60) | round(1) }}
+          {% set s2 = states('sensor.vitrocrossal_allumages_jour_2') %}
+          {% set starts = (s1 | float(0)) if s1 not in ['unknown', 'unavailable', 'none', ''] else ((s2 | float(0)) if s2 not in ['unknown', 'unavailable', 'none', ''] else 0) %}
+          {% set hours = states('sensor.vitrocrossal_bruleur_temps_total_jour') %}
+          {% if hours in ['unknown', 'unavailable', 'none', ''] or (s1 in ['unknown', 'unavailable'] and s2 in ['unknown', 'unavailable']) %}
+            {{ this.state if this is defined and this.state not in ['unknown', 'unavailable', 'none', ''] else 'unavailable' }}
+          {% elif starts > 0 and (hours | float(0)) > 0 %}
+            {{ (((hours | float(0)) / starts) * 60) | round(1) }}
           {% else %}
             0
           {% endif %}
@@ -66,17 +69,26 @@ template:
         unique_id: vitrocrossal_cycle_status
         icon: mdi:fire-circle
         state: >
-          {% set avg = states('sensor.vitrocrossal_duree_moyenne_cycle') | float(0) %}
+          {% set raw_avg = states('sensor.vitrocrossal_duree_moyenne_cycle') %}
           {% set s1 = states('sensor.vitrocrossal_allumages_jour') %}
-          {% set starts = (s1 | float(0)) if s1 not in ['unknown', 'unavailable'] else (states('sensor.vitrocrossal_allumages_jour_2') | float(0)) %}
-          {% if starts == 0 %}
+          {% set s2 = states('sensor.vitrocrossal_allumages_jour_2') %}
+          {% set starts = (s1 | float(0)) if s1 not in ['unknown', 'unavailable', 'none', ''] else ((s2 | float(0)) if s2 not in ['unknown', 'unavailable', 'none', ''] else 0) %}
+          {% set is_burner_on = is_state('binary_sensor.vitrocrossal_300_cu3a_burner', 'on') %}
+          {% if raw_avg in ['unknown', 'unavailable', 'none', ''] or (s1 in ['unknown', 'unavailable'] and s2 in ['unknown', 'unavailable']) %}
+            {{ this.state if this is defined and this.state not in ['unknown', 'unavailable', 'none', ''] else 'unknown' }}
+          {% elif starts == 0 %}
             À l'arrêt
-          {% elif avg >= 25 %}
-            🟢 Optimal (Cycles longs)
-          {% elif avg >= 12 %}
-            🟡 Modéré
+          {% elif starts <= 1 and is_burner_on %}
+            🟢 En cours (1er cycle)
           {% else %}
-            🔴 Court-cycle détecté
+            {% set avg = raw_avg | float(0) %}
+            {% if avg >= 18 %}
+              🟢 Optimal (Cycles longs)
+            {% elif avg >= 10 %}
+              🟡 Modéré
+            {% else %}
+              🔴 Court-cycle détecté
+            {% endif %}
           {% endif %}
 
       - name: "Vitrocrossal Efficacite Condensation"
