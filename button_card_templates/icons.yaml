@@ -13,6 +13,15 @@ icon_plex:
       </svg>
 
 icon_apple_tv:
+  styles:
+    custom_fields:
+      icon:
+        - fill: >
+            [[[
+              return (variables && variables.state_on)
+                  ? '#616161'
+                  : '#9da0a2';
+            ]]]
   custom_fields:
     icon: >
       <svg viewBox="0 0 50 50">
@@ -20,6 +29,15 @@ icon_apple_tv:
       </svg>
 
 icon_appletv_dynamic:
+  styles:
+    custom_fields:
+      icon:
+        - fill: >
+            [[[
+              return (variables && variables.state_on)
+                  ? '#616161'
+                  : '#9da0a2';
+            ]]]
   custom_fields:
     icon: >
       [[[
@@ -41,6 +59,15 @@ icon_appletv_dynamic:
       ]]]
 
 icon_spotify:
+  styles:
+    custom_fields:
+      icon:
+        - fill: >
+            [[[
+              return (variables && variables.state_on)
+                  ? '#1db954'
+                  : '#9da0a2';
+            ]]]
   custom_fields:
     icon: >
       <svg viewBox="0 0 50 50">
@@ -48,6 +75,15 @@ icon_spotify:
       </svg>
 
 icon_nest_mini:
+  styles:
+    custom_fields:
+      icon:
+        - fill: >
+            [[[
+              return (variables && variables.state_on)
+                  ? '#616161'
+                  : '#9da0a2';
+            ]]]
   custom_fields:
     icon: >
       <svg viewBox="0 0 50 50">

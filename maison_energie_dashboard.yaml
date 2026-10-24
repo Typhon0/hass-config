@@ -718,7 +718,7 @@ views:
 
           # Contrat Intelligent Octopus Fixe
           - type: entities
-            title: Contrat Intelligent Octopus Energy
+            title: Contrat Intelligent Octopus (PRM 05685094046381)
             show_header_toggle: false
             state_color: true
             entities:

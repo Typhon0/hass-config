@@ -50,10 +50,8 @@ flowchart TD
 ### Caractéristiques physiques :
 - **Chaudière :** Viessmann Vitrocrossal 300 CU3A avec brûleur hémisphérique Matrix (puissance modulante ~4 à 19 kW).
 - **Préparateur ECS :** Viessmann Vitocell 100 vertical de **200 Litres** (cuve en acier émaillé Ceraprotect, isolation thermique intégrale en mousse rigide de polyuréthane, serpentin de chauffe interne plongeant jusqu'au fond).
-- **Mode ViCare de veille :** `standby` (Veille chaudière complète) ou `dhw` (Eau Chaude Sanitaire en plage autorisée). Quand aucune pièce ne demande de chauffage :
-  - **Pendant la plage ECS (19h00 – 23h00) ou boost :** la chaudière est en mode `dhw` pour charger le ballon Vitocell 100 à 50°C.
-  - **Hors plage ECS (23h00 – 19h00) :** la chaudière est verrouillée en mode `standby` (veille complète). Le brûleur a interdiction formelle de s'allumer pour l'eau chaude (évite les réchauffages intempestifs en pleine nuit après un tirage d'eau tardif). La sécurité antigel chaudière reste active 24h/24.
-- **Mode ViCare de chauffe :** `forcedNormal` (Chauffage prioritaire actif).
+- **Mode ViCare de veille :** `dhw` (Eau Chaude Sanitaire seule). Quand aucune pièce ne demande de chauffage, la chaudière bascule en `dhw` : le circulateur de chauffage s'arrête, évitant les pertes d'énergie électrique et la déperdition thermique dans les tuyaux.
+- **Mode ViCare de chauffe :** `forcedNormal` (Chauffage actif + ECS).
 - **Quotas Cloud ViCare :** Viessmann impose une limite de ~1450 requêtes/jour. Le système intègre des filtres anti-rebond stricts (temporisation minimum de 10 à 15 minutes entre changements de mode) pour ne pas saturer l'API.
 
 ---
@@ -126,13 +124,16 @@ L'automatisation principale est localisée dans [`packages/heating_manager_bedro
 
 1. **Chambre (sous toiture mal isolée) :**
    - **Mode Sommeil** (`schedule.schedule_chauffage_chambre` actif ET présence) : `17.0°C` (réglable via `input_number.heating_chambre_sleep`).
-   - **Mode Éco / Absence** : `16.0°C` (`input_number.heating_chambre_eco`).
+   - **Mode Éco / Absence** (`zone.home == 0`) : `16.0°C` (`input_number.heating_chambre_eco`) avec déclenchement sous `15.5°C` (hystérésis 0.5°C).
 
 2. **Salon :**
-   - **Absence** (`zone.home == 0`) : `16.0°C` (`input_number.heating_salon_away`).
+   - **Absence** (`zone.home == 0`) : `16.0°C` (`input_number.heating_salon_away`) avec déclenchement sous `15.5°C` (hystérésis 0.5°C).
    - **Jour (07h00 – 18h00)** : `19.0°C` (`input_number.heating_salon_day`).
    - **Soir (18h00 – 22h00)** : `19.0°C` (`input_number.heating_salon_evening`).
    - **Nuit (22h00 – 07h00)** : `17.0°C` (`input_number.heating_salon_night`).
+
+3. **Plancher Hors-Gel Sécurisé (Indépendant de l'occupation) :**
+   - **Seuil absolu :** `8.0°C` (`frost_floor`). Si n'importe quelle pièce descend sous 8°C, la chaudière bascule immédiatement en `forcedNormal`, que la maison soit occupée ou vide.
 
 ### B. Hystérésis Dynamique à Deux Seuils (Schmitt Trigger, Deadband 0.5°C)
 
@@ -185,14 +186,10 @@ Sans débit d'eau, l'échangeur de la chaudière surchauffait en 90 secondes et 
 - **Réserve disponible :** 200 Litres d'eau chaude stockée à 50°C fournissent environ **280 à 300 Litres d'eau mitigée à 38°C** (soit 5 à 6 douches consécutives sans aucun besoin de réchauffage en direct).
 - **Inertie du stockage :** L'isolation thermique performante (pertes statiques réduites $q_{BS} \approx 1.2\text{ à } 1.4\text{ kWh/24h}$ à 50°C) permet de conserver l'eau chaude pendant plus de 24h sans déperdition critique.
 
-### B. Programmation Horaire ViCare (19h00 – 23h00) & Verrouillage Standby Home Assistant
-- **Plage de réchauffage unique :** **19h00 à 23h00** tous les jours (programmée dans l'application ViCare et synchronisée dans Home Assistant via `schedule.schedule_eau_chaude`).
+### B. Programmation Horaire ViCare (19h00 – 23h00)
+- **Plage de réchauffage unique :** **19h00 à 23h00** tous les jours (programmée dans l'application ViCare).
 - **Synergie avec les 200 Litres :** Grâce à cette grande réserve, **une unique montée en température en soirée** suffit amplement pour couvrir l'ensemble des besoins : douches du soir, douches du lendemain matin et tirages de la journée.
-- **Reste de la journée & Nuit (23h00 – 19h00) :** Verrouillage strict en mode ViCare **`standby`**. 
-  - *Pourquoi ce verrouillage est essentiel :* Sur la régulation Vitotronic 200, si la chaudière restait en mode `dhw`, un tirage d'eau tardif à minuit (faisant chuter le ballon sous son seuil d'hystérésis de 41°C) déclenchait un réchauffage en pleine nuit malgré la programmation de l'application ViCare.
-  - En basculant la chaudière en **`standby`** dès 23h00 lorsque aucune pièce ne chauffe, Home Assistant interdit tout allumage brûleur nocturne. 
-  - Si une charge ECS était en cours à 23h00, Home Assistant attend la fin de charge (`dhw_charging = off`) avant de passer en veille.
-  - Si un besoin de chauffage survient la nuit (ex. chambre < 17°C), Home Assistant bascule immédiatement en `forcedNormal` pour chauffer les radiateurs, puis repasse en `standby` dès consigne atteinte.
+- **Reste de la journée & Nuit (23h00 – 19h00) :** Réchauffage coupé. Cela évite 4 à 5 allumages intempestifs de maintien pendant les heures creuses ou quand la maison est vide.
 - **Cycle brûleur sain :** Réchauffer 200L d'eau prend environ 25 à 35 minutes de fonctionnement continu à puissance nominale, garantissant un cycle long et propre pour la chaudière sans court-cycle.
 
 ### C. Consignes de Température
