@@ -26,6 +26,8 @@ home-assistant.log*
 !packages
 !button_card_templates
 !scripts
+!reports
+!reports/**
 !*.py
 
 # Ignore folders.
