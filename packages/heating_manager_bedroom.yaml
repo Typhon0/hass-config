@@ -224,15 +224,6 @@ automation:
               {{ states('input_number.heating_salon_night') | float(17) }}
             {% endif %}
 
-          vicare_target_desired: >-
-            {% if not someone_home %}
-              {{ states('input_number.heating_salon_away') | float(16) }}
-            {% elif any_room_needs_heat %}
-              {{ [bedroom_target | float, salon_target | float] | max }}
-            {% else %}
-              {{ states('input_number.heating_salon_night') | float(17) }}
-            {% endif %}
-
           bedroom_cutoff: >-
             {{ (bedroom_target | float) if is_heating_now else ((bedroom_target | float) - deadband) }}
 
@@ -281,6 +272,14 @@ automation:
 
           any_room_needs_heat: "{{ bedroom_needs_heat or salon_needs_heat }}"
           desired_vicare_mode: "{{ 'forcedNormal' if any_room_needs_heat else 'dhw' }}"
+          vicare_target_desired: >-
+            {% if not someone_home %}
+              {{ states('input_number.heating_salon_away') | float(16) }}
+            {% elif any_room_needs_heat %}
+              {{ [bedroom_target | float, salon_target | float] | max }}
+            {% else %}
+              {{ states('input_number.heating_salon_night') | float(17) }}
+            {% endif %}
           last_vicare_change: "{{ states('input_datetime.vicare_last_mode_change') }}"
           seconds_since_change: >-
             {{
