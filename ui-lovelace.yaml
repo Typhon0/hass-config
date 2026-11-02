@@ -799,12 +799,37 @@ views:
                   - icon_water_boiler
                 variables:
                   circle_input: >
-                    [[[ return entity ? entity.attributes.current_temperature : ''; ]]]
+                    [[[
+                      return states['sensor.vitrocrossal_300_cu3a_dhw_storage_temperature'] ? states['sensor.vitrocrossal_300_cu3a_dhw_storage_temperature'].state : (entity ? entity.attributes.current_temperature : '');
+                    ]]]
                   circle_input_unit: "°C"
+                  state_on: >
+                    [[[
+                      const isCharging = states['binary_sensor.vitrocrossal_300_cu3a_dhw_charging'] && states['binary_sensor.vitrocrossal_300_cu3a_dhw_charging'].state === 'on';
+                      const target = states['number.vitrocrossal_300_cu3a_dhw_temperature'] ? parseFloat(states['number.vitrocrossal_300_cu3a_dhw_temperature'].state) : 10;
+                      return isCharging || target >= 50;
+                    ]]]
+                styles:
+                  custom_fields:
+                    icon:
+                      - fill: >
+                          [[[
+                            const isCharging = states['binary_sensor.vitrocrossal_300_cu3a_dhw_charging'] && states['binary_sensor.vitrocrossal_300_cu3a_dhw_charging'].state === 'on';
+                            if (isCharging) return '#ff7a00';
+                            return variables.state_on ? '#3182b7' : '#9da0a2';
+                          ]]]
                 state_display: >
                   [[[
-                    if (!entity || entity.state === 'unavailable') return 'En attente';
-                    return entity.state === 'on' ? 'Prêt • 50°C' : 'Standby';
+                    const isCharging = states['binary_sensor.vitrocrossal_300_cu3a_dhw_charging'] && states['binary_sensor.vitrocrossal_300_cu3a_dhw_charging'].state === 'on';
+                    const target = states['number.vitrocrossal_300_cu3a_dhw_temperature'] ? parseFloat(states['number.vitrocrossal_300_cu3a_dhw_temperature'].state) : 50;
+                    const current = states['sensor.vitrocrossal_300_cu3a_dhw_storage_temperature'] ? states['sensor.vitrocrossal_300_cu3a_dhw_storage_temperature'].state : (entity ? entity.attributes.current_temperature : '');
+                    if (isCharging) {
+                      return `En chauffe • ${current}°C`;
+                    }
+                    if (target >= 50) {
+                      return `Prêt • ${target}°C`;
+                    }
+                    return `Veille • ${target}°C`;
                   ]]]
 
       - type: vertical-stack
@@ -938,12 +963,37 @@ views:
                   - icon_water_boiler
                 variables:
                   circle_input: >
-                    [[[ return entity ? entity.attributes.current_temperature : ''; ]]]
+                    [[[
+                      return states['sensor.vitrocrossal_300_cu3a_dhw_storage_temperature'] ? states['sensor.vitrocrossal_300_cu3a_dhw_storage_temperature'].state : (entity ? entity.attributes.current_temperature : '');
+                    ]]]
                   circle_input_unit: "°C"
+                  state_on: >
+                    [[[
+                      const isCharging = states['binary_sensor.vitrocrossal_300_cu3a_dhw_charging'] && states['binary_sensor.vitrocrossal_300_cu3a_dhw_charging'].state === 'on';
+                      const target = states['number.vitrocrossal_300_cu3a_dhw_temperature'] ? parseFloat(states['number.vitrocrossal_300_cu3a_dhw_temperature'].state) : 10;
+                      return isCharging || target >= 50;
+                    ]]]
+                styles:
+                  custom_fields:
+                    icon:
+                      - fill: >
+                          [[[
+                            const isCharging = states['binary_sensor.vitrocrossal_300_cu3a_dhw_charging'] && states['binary_sensor.vitrocrossal_300_cu3a_dhw_charging'].state === 'on';
+                            if (isCharging) return '#ff7a00';
+                            return variables.state_on ? '#3182b7' : '#9da0a2';
+                          ]]]
                 state_display: >
                   [[[
-                    if (!entity || entity.state === 'unavailable') return 'En attente';
-                    return `${entity.attributes.current_temperature || 50}°C • ${entity.state === 'on' ? 'Prêt' : 'Éco'}`;
+                    const isCharging = states['binary_sensor.vitrocrossal_300_cu3a_dhw_charging'] && states['binary_sensor.vitrocrossal_300_cu3a_dhw_charging'].state === 'on';
+                    const target = states['number.vitrocrossal_300_cu3a_dhw_temperature'] ? parseFloat(states['number.vitrocrossal_300_cu3a_dhw_temperature'].state) : 50;
+                    const current = states['sensor.vitrocrossal_300_cu3a_dhw_storage_temperature'] ? states['sensor.vitrocrossal_300_cu3a_dhw_storage_temperature'].state : (entity ? entity.attributes.current_temperature : '');
+                    if (isCharging) {
+                      return `En chauffe • ${current}°C`;
+                    }
+                    if (target >= 50) {
+                      return `Prêt • ${target}°C`;
+                    }
+                    return `Veille • ${target}°C`;
                   ]]]
 
       - type: vertical-stack

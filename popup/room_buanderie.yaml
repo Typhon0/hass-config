@@ -92,9 +92,28 @@ browser_mod:
               variables:
                 circle_input: >
                   [[[ 
-                    if (entity) return entity.attributes.current_temperature;
+                    return states['sensor.vitrocrossal_300_cu3a_dhw_storage_temperature'] ? states['sensor.vitrocrossal_300_cu3a_dhw_storage_temperature'].state : (entity ? entity.attributes.current_temperature : '');
                   ]]]
                 circle_input_unit: "°C"
+                state_on: >
+                  [[[
+                    const isCharging = states['binary_sensor.vitrocrossal_300_cu3a_dhw_charging'] && states['binary_sensor.vitrocrossal_300_cu3a_dhw_charging'].state === 'on';
+                    const target = states['number.vitrocrossal_300_cu3a_dhw_temperature'] ? parseFloat(states['number.vitrocrossal_300_cu3a_dhw_temperature'].state) : 10;
+                    return isCharging || target >= 50;
+                  ]]]
+              state_display: >
+                [[[
+                  const isCharging = states['binary_sensor.vitrocrossal_300_cu3a_dhw_charging'] && states['binary_sensor.vitrocrossal_300_cu3a_dhw_charging'].state === 'on';
+                  const target = states['number.vitrocrossal_300_cu3a_dhw_temperature'] ? parseFloat(states['number.vitrocrossal_300_cu3a_dhw_temperature'].state) : 50;
+                  const current = states['sensor.vitrocrossal_300_cu3a_dhw_storage_temperature'] ? states['sensor.vitrocrossal_300_cu3a_dhw_storage_temperature'].state : (entity ? entity.attributes.current_temperature : '');
+                  if (isCharging) {
+                    return `En chauffe • ${current}°C`;
+                  }
+                  if (target >= 50) {
+                    return `Prêt • ${target}°C`;
+                  }
+                  return `Veille • ${target}°C`;
+                ]]]
         - type: entities
           title: Détails buanderie
           show_header_toggle: false

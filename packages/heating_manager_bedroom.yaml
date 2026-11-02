@@ -617,6 +617,30 @@ automation:
             data:
               value: 10
 
+  - alias: "ECS - Alerte Defaut de Chauffe"
+    id: ecs_alerte_defaut_de_chauffe
+    mode: single
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.vitrocrossal_300_cu3a_dhw_storage_temperature
+        below: 35
+        for:
+          minutes: 20
+    condition:
+      - condition: time
+        after: "19:00:00"
+        before: "23:00:00"
+      - condition: state
+        entity_id: binary_sensor.vitrocrossal_300_cu3a_dhw_charging
+        state: "off"
+    action:
+      - action: notify.mobile_app_iphone_de_loic
+        data:
+          title: "⚠️ Alerte Ballon ECS"
+          message: >-
+            Le ballon d'eau chaude est a {{ states('sensor.vitrocrossal_300_cu3a_dhw_storage_temperature') }}°C 
+            en pleine plage horaire (19h-23h) sans chauffe active depuis plus de 20 minutes.
+
   - alias: "Detection Aeration Chambre"
     id: detection_aeration_chambre
     mode: single
