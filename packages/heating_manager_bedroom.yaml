@@ -190,6 +190,7 @@ automation:
           bedroom_schedule_on: "{{ is_state('schedule.schedule_chauffage_chambre', 'on') }}"
           salon_schedule_on: "{{ is_state('schedule.schedule_chauffage_salon', 'on') }}"
           vicare_mode_current: "{{ state_attr('climate.vitrocrossal_300_cu3a_heating', 'active_vicare_mode') }}"
+          vicare_target_current: "{{ state_attr('climate.vitrocrossal_300_cu3a_heating', 'temperature') | float(17) }}"
           thermostat1_target_current: "{{ state_attr('climate.thermostat1', 'temperature') | float(0) }}"
           thermostat1_hvac_current: "{{ states('climate.thermostat1') }}"
           deadband: 0.5
@@ -212,13 +213,22 @@ automation:
             {% if not someone_home %}
               {{ states('input_number.heating_salon_away') | float(16) }}
             {% elif salon_schedule_on %}
-              {% if h >= 22 or h < 7 %}
+              {% if h < 8 %}
                 {{ states('input_number.heating_salon_night') | float(17) }}
               {% elif h >= 18 %}
                 {{ states('input_number.heating_salon_evening') | float(19) }}
               {% else %}
                 {{ states('input_number.heating_salon_day') | float(19) }}
               {% endif %}
+            {% else %}
+              {{ states('input_number.heating_salon_night') | float(17) }}
+            {% endif %}
+
+          vicare_target_desired: >-
+            {% if not someone_home %}
+              {{ states('input_number.heating_salon_away') | float(16) }}
+            {% elif any_room_needs_heat %}
+              {{ [bedroom_target | float, salon_target | float] | max }}
             {% else %}
               {{ states('input_number.heating_salon_night') | float(17) }}
             {% endif %}
@@ -394,6 +404,23 @@ automation:
                     Salon : {{ salon_temp | round(1) }}°C / cible {{ salon_target | float | round(1) }}°C.
                     Exterieur : {{ outside_temp | round(1) }}°C.
 
+      # 3. Synchronisation de la consigne d'ambiance de la chaudiere ViCare
+      - if:
+          - condition: template
+            value_template: >-
+              {{ (vicare_target_current | round(0) | int) != (vicare_target_desired | round(0) | int) }}
+        then:
+          - action: climate.set_temperature
+            target:
+              entity_id: climate.vitrocrossal_300_cu3a_heating
+            data:
+              temperature: "{{ vicare_target_desired | round(0) | int }}"
+          - action: number.set_value
+            target:
+              entity_id: number.vitrocrossal_300_cu3a_normal_temperature
+            data:
+              value: "{{ vicare_target_desired | round(0) | int }}"
+
   - alias: Hot Water Boost End
     id: hot_water_boost_end
     mode: single
@@ -410,7 +437,9 @@ automation:
 
     action:
       - variables:
-          restore_temp: "{{ states('input_number.hot_water_boost_restore_temp') | float(50) }}"
+          restore_temp: >-
+            {% set h = now().hour %}
+            {{ 50 if (19 <= h < 23) else 10 }}
 
       - action: water_heater.set_temperature
         target:
@@ -499,6 +528,95 @@ automation:
                 data:
                   title: "Cycle Anti-Legionelle Termine"
                   message: "Desinfection thermique effectuee. Consigne ECS retablie a 50°C."
+
+  - alias: "ECS - Activation Plage Soir 19h"
+    id: ecs_activation_plage_soir_19h
+    mode: single
+    trigger:
+      - platform: time
+        at: "19:00:00"
+    action:
+      - choose:
+          # Le dimanche, le cycle anti-légionelle prend le relais à 60°C
+          - conditions:
+              - condition: time
+                weekday:
+                  - sun
+            sequence:
+              - action: water_heater.set_temperature
+                target:
+                  entity_id: water_heater.vitrocrossal_300_cu3a_domestic_hot_water
+                data:
+                  temperature: 60
+              - action: number.set_value
+                target:
+                  entity_id: number.vitrocrossal_300_cu3a_dhw_temperature
+                data:
+                  value: 60
+        default:
+          - action: water_heater.set_temperature
+            target:
+              entity_id: water_heater.vitrocrossal_300_cu3a_domestic_hot_water
+            data:
+              temperature: 50
+          - action: number.set_value
+            target:
+              entity_id: number.vitrocrossal_300_cu3a_dhw_temperature
+            data:
+              value: 50
+
+  - alias: "ECS - Extinction Plage Nuit & Jour 23h"
+    id: ecs_extinction_plage_nuit_jour_23h
+    mode: single
+    trigger:
+      - platform: time
+        at: "23:00:00"
+    action:
+      - action: water_heater.set_temperature
+        target:
+          entity_id: water_heater.vitrocrossal_300_cu3a_domestic_hot_water
+        data:
+          temperature: 10
+      - action: number.set_value
+        target:
+          entity_id: number.vitrocrossal_300_cu3a_dhw_temperature
+        data:
+          value: 10
+
+  - alias: "ECS - Synchronisation Consigne au Demarrage"
+    id: ecs_synchronisation_consigne_au_demarrage
+    mode: single
+    trigger:
+      - platform: homeassistant
+        event: start
+    action:
+      - choose:
+          - conditions:
+              - condition: time
+                after: "19:00:00"
+                before: "23:00:00"
+            sequence:
+              - action: water_heater.set_temperature
+                target:
+                  entity_id: water_heater.vitrocrossal_300_cu3a_domestic_hot_water
+                data:
+                  temperature: 50
+              - action: number.set_value
+                target:
+                  entity_id: number.vitrocrossal_300_cu3a_dhw_temperature
+                data:
+                  value: 50
+        default:
+          - action: water_heater.set_temperature
+            target:
+              entity_id: water_heater.vitrocrossal_300_cu3a_domestic_hot_water
+            data:
+              temperature: 10
+          - action: number.set_value
+            target:
+              entity_id: number.vitrocrossal_300_cu3a_dhw_temperature
+            data:
+              value: 10
 
   - alias: "Detection Aeration Chambre"
     id: detection_aeration_chambre
@@ -607,7 +725,7 @@ template:
           {% if not someone_home %}
             {{ states('input_number.heating_salon_away') | float(16) }}
           {% elif salon_schedule_on %}
-            {% if h >= 22 or h < 7 %}
+            {% if h < 8 %}
               {{ states('input_number.heating_salon_night') | float(17) }}
             {% elif h >= 18 %}
               {{ states('input_number.heating_salon_evening') | float(19) }}

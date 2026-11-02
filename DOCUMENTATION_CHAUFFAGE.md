@@ -128,9 +128,9 @@ L'automatisation principale est localisée dans [`packages/heating_manager_bedro
 
 2. **Salon :**
    - **Absence** (`zone.home == 0`) : `16.0°C` (`input_number.heating_salon_away`) avec déclenchement sous `15.5°C` (hystérésis 0.5°C).
-   - **Jour (07h00 – 18h00)** : `19.0°C` (`input_number.heating_salon_day`).
-   - **Soir (18h00 – 22h00)** : `19.0°C` (`input_number.heating_salon_evening`).
-   - **Nuit (22h00 – 07h00)** : `17.0°C` (`input_number.heating_salon_night`).
+   - **Jour (08h00 – 18h00)** : `19.0°C` (`input_number.heating_salon_day`).
+   - **Soir (18h00 – 00h00)** : `19.0°C` (`input_number.heating_salon_evening`).
+   - **Nuit (00h00 – 08h00)** : `17.0°C` (`input_number.heating_salon_night`).
 
 3. **Plancher Hors-Gel Sécurisé (Indépendant de l'occupation) :**
    - **Seuil absolu :** `8.0°C` (`frost_floor`). Si n'importe quelle pièce descend sous 8°C, la chaudière bascule immédiatement en `forcedNormal`, que la maison soit occupée ou vide.
@@ -157,6 +157,13 @@ stateDiagram-v2
 - **Garde-fou temporel anti-court-cycle :**  
   Une fois la chauffe démarrée, le système **interdit d'éteindre la chaudière avant 15 minutes continues de fonctionnement** (sauf si tout le monde quitte la maison). Cela permet au brûleur Matrix d'atteindre son palier de modulation stabilisé à basse puissance (17%).
 - **Anti-rebond au repos :** Après extinction, un délai de **10 minutes minimum** est respecté avant tout redémarrage.
+
+### C. Synchronisation Dynamique de la Consigne d'Ambiance ViCare
+Pour éviter que la régulation interne Vitotronic ne calcule sa courbe sur une fausse cible basse (ex. 17°C) quand le salon demande 19°C, l'automatisation synchronise automatiquement la consigne ambiante de la chaudière ([`climate.vitrocrossal_300_cu3a_heating`](file:///root/config/packages/heating_manager_bedroom.yaml)) :
+- **Journée & Soirée (présence) :** `19.0°C` (ou selon besoin salon).
+- **Nuit (00h00 – 08h00) :** `17.0°C`.
+- **Absence :** `16.0°C`.
+Cela garantit que l'eau envoyée dans les radiateurs dispose de la puissance thermique nécessaire pour vaincre l'inertie des murs en pierre sans provoquer de courts-cycles de surchauffe locale.
 
 ---
 

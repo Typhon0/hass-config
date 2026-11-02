@@ -64,7 +64,7 @@ sensor: !include sensors.yaml
 
 recorder:
   db_url: !secret postgres_db_url
-  purge_keep_days: 10
+  purge_keep_days: 14
   commit_interval: 1
   auto_purge: true
   exclude:
@@ -158,6 +158,7 @@ influxdb:
     domains:
       - climate
       - water_heater
+      - zone
     entity_globs:
       - sensor.gaz_*
       - sensor.vitrocrossal_*
@@ -170,6 +171,7 @@ influxdb:
       - sensor.*_power
       - sensor.*_energy
       - sensor.consommation_*
+      - sensor.consigne_*
     entities:
       - sensor.gazpar_energy
       - sensor.chauffage_statut
